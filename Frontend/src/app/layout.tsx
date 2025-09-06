@@ -3,6 +3,7 @@ import './globals.css';
 import type { Metadata } from "next";
 import Headers from "@/components/homepage/Header";
 import Footer from '@/components/homepage/Footer';
+import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: "Hola Ecommerce",
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans bg-white text-black">
         <main className="min-h-screen">
           <Headers/>
+          <Toaster position="top-right" />
           {children}
           <Footer />
         </main>

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import toast from 'react-hot-toast'
 
 export default function GlamLogin() {
   const [email, setEmail] = useState('')
@@ -15,25 +16,47 @@ export default function GlamLogin() {
   const prefersReduced = useReducedMotion()
 
   const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
+    e.preventDefault();
+    setError(null);
 
     // Very basic validation for demo
-    const emailOk = /.+@.+\..+/.test(email)
+    const emailOk = /.+@.+\..+/.test(email);
     if (!emailOk || password.length < 6) {
-      setError(!emailOk ? 'Please enter a valid email address.' : 'Password must be at least 6 characters.')
-      return
+      setError(!emailOk ? 'Please enter a valid email address.' : 'Password must be at least 6 characters.');
+      return;
     }
 
     try {
-      setLoading(true)
-      // TODO: Replace with your auth request (NextAuth, custom API, etc.)
-      await new Promise((r) => setTimeout(r, 900))
-      // redirect...
+      setLoading(true);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, remember }),
+      });
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+      if (!res.ok) {
+        setError(data.detail || data.message || 'Login failed. Please try again.');
+        return;
+      }
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        console.log(data.fullName);
+        localStorage.setItem('loginSuccess', data.fullName);
+        window.location.href = '/products';
+      } else {
+        setError('Login failed. Please try again.');
+      }
     } catch (e) {
-      setError('Login failed. Please try again.')
+      setError('Login failed. Please try again.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
