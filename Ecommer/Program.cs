@@ -1,3 +1,4 @@
+using Ecommer.Api.Endpoints;
 using Ecommer.Container.ServiceRegister;
 using Ecommer.Controllers.Endpoints;
 using Ecommer.Infrastructure.Notifications;
@@ -65,6 +66,7 @@ app.UseAuthorization();
 // Map feature endpoints
 app.MapProducts();
 app.MapUsers();
+app.MapCategories();
 app.MapNotifications();
 app.MapHub<NotificationsHub>("/hubs/notifications");
 

@@ -8,31 +8,25 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 // === Replace with your own slides ===
 const slides = [
   {
-    src: '/images/Banner-02.jpg',
+    src: '/images/Banner-05.jpg',
     heading: 'Thể hiện phong cách của bạn',
     sub: 'Khám phá giày streetwear mới nhất',
     href: '/products',
     cta: 'Mua ngay',
   },
   {
-    src: '/images/Banner-03.jpg',
+    src: '/images/Banner-06.jpg',
     heading: 'Chinh phục đường phố',
     sub: 'Chuẩn drop. Chuẩn hàng ngày. Chuẩn cho bạn.',
     href: '/products?tag=new-arrivals',
     cta: 'Khám phá Drop',
-  },
-  {
-    src: '/images/Banner-04.jpg',
-    heading: 'Thoải mái & Phong cách',
-    sub: 'Đệm êm như mây. Màu sắc nổi bật. Không thoả hiệp.',
-    href: '/products?tag=best-sellers',
-    cta: 'Bán chạy',
   },
 ]
 
 export default function GlamBanner() {
   const [index, setIndex] = useState(0)
   const [isHovering, setIsHovering] = useState(false)
+  const [mounted, setMounted] = useState(false);
   const prefersReduced = useReducedMotion()
   const progressRef = useRef<HTMLDivElement | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -52,7 +46,7 @@ export default function GlamBanner() {
       if (timerRef.current) clearInterval(timerRef.current)
       timerRef.current = setInterval(() => {
         if (!isHovering) go(1)
-      }, 3500)
+      }, 2000)
       // progress bar animation reset
       if (progressRef.current) {
         progressRef.current.style.animation = 'none'
@@ -91,7 +85,7 @@ export default function GlamBanner() {
   const variants = useMemo(
     () => ({
       enter: (dir: number) => ({ x: prefersReduced ? 0 : dir > 0 ? 60 : -60, opacity: 0, scale: prefersReduced ? 1 : 0.975 }),
-      center: { x: 0, opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 140, damping: 18 } },
+      center: { x: 0, opacity: 1, scale: 1, transition: { stiffness: 140, damping: 18 } },
       exit: (dir: number) => ({ x: prefersReduced ? 0 : dir > 0 ? -60 : 60, opacity: 0, scale: prefersReduced ? 1 : 0.985 }),
     }),
     [prefersReduced]
@@ -106,6 +100,10 @@ export default function GlamBanner() {
 
   // Touch/drag support via Framer Motion
   const swipeConfidence = 50 // px
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div
@@ -122,63 +120,108 @@ export default function GlamBanner() {
       </div>
 
       <AnimatePresence custom={dirRef.current} mode='popLayout'>
-        <motion.div
-          key={index}
-          custom={dirRef.current}
-          variants={variants}
-          initial='enter'
-          animate='center'
-          exit='exit'
-          className='absolute inset-0'
-          transition={{ duration: prefersReduced ? 0.2 : 0.6 }}
-        >
-          <Image
-            src={slides[index].src}
-            alt={slides[index].heading}
-            fill
-            priority
-            className='object-cover'
-            sizes='100vw'
-          />
+        {mounted ? (
+          <motion.div
+            key={index}
+            custom={dirRef.current}
+            variants={variants}
+            initial='enter'
+            animate='center'
+            exit='exit'
+            className='absolute inset-0'
+            transition={{ duration: prefersReduced ? 0.2 : 0.6 }}
+          >
+            <Image
+              src={slides[index].src}
+              alt={slides[index].heading}
+              fill
+              priority
+              className='object-cover'
+              sizes='100vw'
+            />
 
-          {/* Foreground Content Card */}
-          <div className='absolute inset-0 flex items-center justify-center p-4 md:p-8'>
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.5 }}
-              className='backdrop-blur-md bg-white/10 border border-white/15 shadow-2xl rounded-3xl px-6 py-8 md:px-10 md:py-12 max-w-3xl text-center text-white'
-            >
-              <div className='inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs tracking-wide uppercase mb-4 border border-white/20'>
-                <span className='h-2 w-2 rounded-full bg-white animate-pulse' />
-                New Season
+            {/* Foreground Content Card */}
+            <div className='absolute inset-0 flex items-center justify-center p-4 md:p-8'>
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.5 }}
+                className='backdrop-blur-md bg-white/10 border border-white/15 shadow-2xl rounded-3xl px-6 py-8 md:px-10 md:py-12 max-w-3xl text-center text-white'
+              >
+                <div className='inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs tracking-wide uppercase mb-4 border border-white/20'>
+                  <span className='h-2 w-2 rounded-full bg-white animate-pulse' />
+                  New Season
+                </div>
+                <h1 className='text-4xl md:text-6xl font-extrabold leading-tight drop-shadow-sm'>
+                  {slides[index].heading}
+                </h1>
+                <p className='mt-3 md:mt-4 text-base md:text-lg text-white/90'>
+                  {slides[index].sub}
+                </p>
+                <div className='mt-6 flex items-center justify-center gap-3'>
+                  <Link
+                    href={slides[index].href}
+                    className='group relative inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold text-sm md:text-base text-white'
+                  >
+                    <span className='absolute inset-0 rounded-full bg-white/20 blur' />
+                    <span className='relative rounded-full bg-black/80 px-6 py-3 ring-1 ring-white/20 backdrop-blur-md hover:bg-black transition'>
+                      {slides[index].cta}
+                    </span>
+                  </Link>
+                  <Link
+                    href='/products?tag=all'
+                    className='relative inline-flex items-center rounded-full px-6 py-3 text-sm md:text-base font-semibold text-white/90 ring-1 ring-white/30 hover:bg-white/10 transition'
+                  >
+                    Browse All
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        ) : (
+          <div className='absolute inset-0'>
+            <Image
+              src={slides[index].src}
+              alt={slides[index].heading}
+              fill
+              priority
+              className='object-cover'
+              sizes='100vw'
+            />
+            {/* Foreground Content Card */}
+            <div className='absolute inset-0 flex items-center justify-center p-4 md:p-8'>
+              <div className='backdrop-blur-md bg-white/10 border border-white/15 shadow-2xl rounded-3xl px-6 py-8 md:px-10 md:py-12 max-w-3xl text-center text-white'>
+                <div className='inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs tracking-wide uppercase mb-4 border border-white/20'>
+                  <span className='h-2 w-2 rounded-full bg-white animate-pulse' />
+                  New Season
+                </div>
+                <h1 className='text-4xl md:text-6xl font-extrabold leading-tight drop-shadow-sm'>
+                  {slides[index].heading}
+                </h1>
+                <p className='mt-3 md:mt-4 text-base md:text-lg text-white/90'>
+                  {slides[index].sub}
+                </p>
+                <div className='mt-6 flex items-center justify-center gap-3'>
+                  <Link
+                    href={slides[index].href}
+                    className='group relative inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold text-sm md:text-base text-white'
+                  >
+                    <span className='absolute inset-0 rounded-full bg-white/20 blur' />
+                    <span className='relative rounded-full bg-black/80 px-6 py-3 ring-1 ring-white/20 backdrop-blur-md hover:bg-black transition'>
+                      {slides[index].cta}
+                    </span>
+                  </Link>
+                  <Link
+                    href='/products?tag=all'
+                    className='relative inline-flex items-center rounded-full px-6 py-3 text-sm md:text-base font-semibold text-white/90 ring-1 ring-white/30 hover:bg-white/10 transition'
+                  >
+                    Browse All
+                  </Link>
+                </div>
               </div>
-              <h1 className='text-4xl md:text-6xl font-extrabold leading-tight drop-shadow-sm'>
-                {slides[index].heading}
-              </h1>
-              <p className='mt-3 md:mt-4 text-base md:text-lg text-white/90'>
-                {slides[index].sub}
-              </p>
-              <div className='mt-6 flex items-center justify-center gap-3'>
-                <Link
-                  href={slides[index].href}
-                  className='group relative inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold text-sm md:text-base text-white'
-                >
-                  <span className='absolute inset-0 rounded-full bg-white/20 blur' />
-                  <span className='relative rounded-full bg-black/80 px-6 py-3 ring-1 ring-white/20 backdrop-blur-md hover:bg-black transition'>
-                    {slides[index].cta}
-                  </span>
-                </Link>
-                <Link
-                  href='/products?tag=all'
-                  className='relative inline-flex items-center rounded-full px-6 py-3 text-sm md:text-base font-semibold text-white/90 ring-1 ring-white/30 hover:bg-white/10 transition'
-                >
-                  Browse All
-                </Link>
-              </div>
-            </motion.div>
+            </div>
           </div>
-        </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Controls */}

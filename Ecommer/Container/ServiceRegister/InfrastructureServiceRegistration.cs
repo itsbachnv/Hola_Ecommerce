@@ -1,5 +1,6 @@
 // Container/ServiceRegister/InfrastructureServiceRegistration.cs
 using Ecommer.Application.Abstractions;
+using Ecommer.Application.Abstractions.Categories;
 using Ecommer.Application.Abstractions.Notifications;
 using Ecommer.Application.Abstractions.Users;
 using Ecommer.Infrastructure;
@@ -44,6 +45,8 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IAppNotificationPublisher, SignalRAppNotificationPublisher>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
+        
         services.AddScoped<IJwtService, JwtService>();
 
         return services;

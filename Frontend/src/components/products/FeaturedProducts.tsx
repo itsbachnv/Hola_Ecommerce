@@ -65,10 +65,7 @@ export default function FeaturedProducts() {
     <section className="bg-gray-50 py-16 px-4 md:px-16 lg:px-24">
       <div className="mx-auto max-w-[1440px]">
         <div className="text-center mb-10">
-          <p className="uppercase tracking-widest text-sm text-gray-500 mb-2">
-            Demo
-          </p>
-          <h2 className="text-3xl font-semibold">Sản phẩm nổi bật</h2>
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-[0.1em] text-black mt-2">Featured Products</h2>
         </div>
 
         {/* Loading skeleton */}

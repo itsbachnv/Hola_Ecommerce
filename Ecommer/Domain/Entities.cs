@@ -37,8 +37,8 @@ public class Category
     public string Slug { get; set; } = default!;
     public long? ParentId { get; set; }
     public string? Path { get; set; }
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset ? CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset ? UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     public Category? Parent { get; set; }
 }
 

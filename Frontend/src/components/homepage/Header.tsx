@@ -183,6 +183,26 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
 
 /* ===== Helpers ===== */
 
+function MobileLink({
+  href,
+  children,
+  onClick,
+}: {
+  href: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-lg px-2 py-2 hover:bg-black/5 transition"
+      onClick={onClick}
+    >
+      {children}
+    </Link>
+  );
+}
+
 function HeaderLink(
   { href, children, mega = false }:
   { href: string; children: React.ReactNode; mega?: boolean }
@@ -225,63 +245,96 @@ function HeaderLink(
 }
 
 function MegaMenu() {
+  type Category = {
+    id: number;
+    name: string;
+    slug: string;
+    parentId: number | null;
+    parentName: string | null;
+  };
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    fetch('https://localhost:5000/categories')
+      .then(res => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCategories(data);
+        } else {
+          setCategories([]);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  if (!mounted) {
+    // Render placeholder giống server để tránh hydration mismatch
+    return (
+      <div className="w-[720px] md:w-[760px] grid grid-cols-3 gap-6">
+        {["Sneakers", "Apparel"].map((parent, idx) => (
+          <div key={parent}>
+            <h5 className="mb-2 text-xs font-bold tracking-widest text-gray-500 uppercase">{parent}</h5>
+            <ul className="space-y-1.5 text-sm">
+              <li><span className="text-gray-400">Đang tải...</span></li>
+            </ul>
+          </div>
+        ))}
+        <div className="relative overflow-hidden rounded-2xl ring-1 ring-black/10 min-h-[180px]">
+          <Image src="/images/Banner-03.jpg" alt="New Arrivals" fill className="object-cover" sizes="320px" priority={false} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+          <div className="absolute bottom-3 left-3 right-3 text-white">
+            <div className="text-xs uppercase tracking-widest opacity-90">New Arrivals</div>
+            <Link href="/products?tag=new-arrivals" className="mt-1 inline-flex items-center gap-2 text-sm font-semibold underline decoration-2 underline-offset-4">
+              Shop now
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M13 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Find all parent categories (parentId == null)
+  const parentCategories = categories.filter(cat => cat.parentId === null);
+
   return (
     <div className="w-[720px] md:w-[760px] grid grid-cols-3 gap-6">
-      {/* Col 1 */}
-      <div>
-        <h5 className="mb-2 text-xs font-bold tracking-widest text-gray-500 uppercase">
-          Sneakers
-        </h5>
-        <ul className="space-y-1.5 text-sm">
-          {['Running', 'Basketball', 'Skate', 'Lifestyle'].map((x) => (
-            <li key={x}>
-              <Link
-                href={`/catalog?cat=${x.toLowerCase()}`}
-                className="block rounded-lg px-2 py-1.5 hover:bg-black/5 transition"
-              >
-                {x}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Col 2 */}
-      <div>
-        <h5 className="mb-2 text-xs font-bold tracking-widest text-gray-500 uppercase">
-          Apparel
-        </h5>
-        <ul className="space-y-1.5 text-sm">
-          {['Tees', 'Hoodies', 'Pants', 'Shorts'].map((x) => (
-            <li key={x}>
-              <Link
-                href={`/catalog?cat=${x.toLowerCase()}`}
-                className="block rounded-lg px-2 py-1.5 hover:bg-black/5 transition"
-              >
-                {x}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-
+      {parentCategories.slice(0, 2).map((parent) => (
+        <div key={parent.id}>
+          <h5 className="mb-2 text-xs font-bold tracking-widest text-gray-500 uppercase">{parent.name}</h5>
+          <ul className="space-y-1.5 text-sm">
+            {loading ? (
+              <li><span className="text-gray-400">Đang tải...</span></li>
+            ) : (
+              categories.filter(cat => cat.parentId === parent.id).length > 0 ? (
+                categories.filter(cat => cat.parentId === parent.id).map((cat) => (
+                  <li key={cat.id}>
+                    <Link href={`/catalog?cat=${cat.slug}`} className="block rounded-lg px-2 py-1.5 hover:bg-black/5 transition">{cat.name}</Link>
+                  </li>
+                ))
+              ) : (
+                <li><span className="text-gray-400">Không có dữ liệu</span></li>
+              )
+            )}
+          </ul>
+        </div>
+      ))}
       {/* Col 3 – Promo card */}
       <div className="relative overflow-hidden rounded-2xl ring-1 ring-black/10 min-h-[180px]">
-        <Image
-          src="/images/Banner-03.jpg"
-          alt="New Arrivals"
-          fill
-          className="object-cover"
-          sizes="320px"
-          priority={false}
-        />
+        <Image src="/images/Banner-03.jpg" alt="New Arrivals" fill className="object-cover" sizes="320px" priority={false} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3 text-white">
           <div className="text-xs uppercase tracking-widest opacity-90">New Arrivals</div>
-          <Link
-            href="/products?tag=new-arrivals"
-            className="mt-1 inline-flex items-center gap-2 text-sm font-semibold underline decoration-2 underline-offset-4"
-          >
+          <Link href="/products?tag=new-arrivals" className="mt-1 inline-flex items-center gap-2 text-sm font-semibold underline decoration-2 underline-offset-4">
             Shop now
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M5 12h14M13 5l7 7-7 7" />
@@ -290,13 +343,5 @@ function MegaMenu() {
         </div>
       </div>
     </div>
-  )
-}
-
-function MobileLink({ href, children, onClick }: { href: string; children: React.ReactNode; onClick?: () => void }) {
-  return (
-    <Link href={href} onClick={onClick} className='block rounded-xl px-3 py-2 hover:bg-black/5'>
-      {children}
-    </Link>
-  )
+  );
 }
