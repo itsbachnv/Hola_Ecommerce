@@ -5,6 +5,7 @@ Một hệ thống UI hoàn chỉnh cho ứng dụng thương mại điện tử
 ## 🚀 Tính năng chính
 
 ### 1. Guest / Customer Workflow
+
 - **UC-BrowseCatalog**: Duyệt danh sách sản phẩm theo category/brand/search
 - **UC-ViewProductDetail**: Xem chi tiết + biến thể (giá, tồn kho, hình ảnh)
 - **UC-AddToCart**: Thêm sản phẩm vào giỏ
@@ -13,6 +14,7 @@ Một hệ thống UI hoàn chỉnh cho ứng dụng thương mại điện tử
 - **UC-TrackOrder**: Xem trạng thái đơn hàng
 
 ### 2. Admin Workflow
+
 - **UC-CRUDProduct**: Quản lý sản phẩm (tạo, sửa, xóa, cập nhật trạng thái)
 - **UC-ManageOrders**: Xem danh sách đơn, lọc/truy vấn theo trạng thái
 - **UC-FulfillOrder**: Xác nhận đơn, chuyển trạng thái
@@ -21,6 +23,7 @@ Một hệ thống UI hoàn chỉnh cho ứng dụng thương mại điện tử
 - **UC-ViewDashboard**: Xem KPI (doanh thu, AOV, đơn theo trạng thái)
 
 ### 3. Staff Workflow
+
 - **UC-SearchOrder**: Tra cứu đơn theo mã
 - **UC-UpdateTracking**: Cập nhật trạng thái vận chuyển
 
@@ -64,6 +67,7 @@ src/
 ## 🎨 Components có thể tái sử dụng
 
 ### UI Components Cơ bản
+
 - `Button`: Button với nhiều variants (primary, outline, ghost, danger)
 - `Card`: Card container với header, content, footer
 - `Input`: Input field với validation styling
@@ -71,10 +75,12 @@ src/
 - `Tabs`: Tab navigation component
 
 ### Layout Components
+
 - `AdminLayout`: Layout chính với sidebar responsive, navigation, search bar
 - `MiniCart`: Icon giỏ hàng mini hiển thị số lượng và tổng tiền
 
 ### Business Components
+
 - `ProductCatalog`: Catalog với search, filter, grid/list view
 - `ProductDetail`: Trang chi tiết sản phẩm với variants, quantity selector
 - `ShoppingCart`: Sidebar giỏ hàng với update quantity, remove items
@@ -99,13 +105,13 @@ File `tailwind.config.js` đã được cấu hình với các CSS variables cho
 ### 3. Import và sử dụng components
 
 ```tsx
-import AdminLayout from '@/components/layout/AdminLayout'
-import ProductCatalog from '@/components/catalog/ProductCatalog'
-import { useCartStore } from '@/stores/cart'
+import AdminLayout from "@/components/layout/AdminLayout";
+import ProductCatalog from "@/components/catalog/ProductCatalog";
+import { useCartStore } from "@/stores/cart";
 
 export default function ShopPage() {
-  const { addItem } = useCartStore()
-  
+  const { addItem } = useCartStore();
+
   return (
     <AdminLayout>
       <ProductCatalog
@@ -115,14 +121,14 @@ export default function ShopPage() {
           // Navigate to product detail
         }}
         onAddToCart={(product, variantId) => {
-          const variant = product.variants.find(v => v.id === variantId)
+          const variant = product.variants.find((v) => v.id === variantId);
           if (variant) {
-            addItem(product, variant)
+            addItem(product, variant);
           }
         }}
       />
     </AdminLayout>
-  )
+  );
 }
 ```
 
@@ -130,14 +136,14 @@ export default function ShopPage() {
 
 ```tsx
 // Auth store
-import { useAuth } from '@/stores/auth'
+import { useAuth } from "@/stores/auth";
 
-const { user, isAdmin, login, logout } = useAuth()
+const { user, isAdmin, login, logout } = useAuth();
 
-// Cart store  
-import { useCartStore } from '@/stores/cart'
+// Cart store
+import { useCartStore } from "@/stores/cart";
 
-const { cart, addItem, removeItem, getTotal } = useCartStore()
+const { cart, addItem, removeItem, getTotal } = useCartStore();
 ```
 
 ## 🎯 Role-based Access
@@ -151,6 +157,7 @@ Components tự động điều chỉnh theo role của user:
 ## 📱 Responsive Design
 
 Tất cả components được thiết kế responsive:
+
 - Mobile-first approach
 - Collapsible sidebar cho mobile
 - Grid layouts tự động điều chỉnh
@@ -159,12 +166,15 @@ Tất cả components được thiết kế responsive:
 ## 🔧 Customization
 
 ### Themes
+
 CSS variables trong `globals.css` có thể được tùy chỉnh để thay đổi color scheme.
 
 ### Components
+
 Mỗi component được thiết kế modular, có thể dễ dàng extend hoặc customize.
 
 ### Variants
+
 Sử dụng `class-variance-authority` để tạo component variants có thể tái sử dụng.
 
 ## 🚀 Triển khai
@@ -183,6 +193,7 @@ Sử dụng `class-variance-authority` để tạo component variants có thể 
 ## 🔮 Mở rộng
 
 Cấu trúc được thiết kế để dễ dàng thêm:
+
 - Chat bot integration
 - Payment gateway integration
 - Inventory management

@@ -1,4 +1,5 @@
 using Ecommer.Application.Abstractions.Users;
+using Ecommer.Domain;
 using HDMS_API.Application.Usecases.UserCommon.Login;
 using MediatR;
 
@@ -11,53 +12,55 @@ public class LoginCommand : IRequest<LoginResultDto>
 }
 
 public class LoginHandler : IRequestHandler<LoginCommand, LoginResultDto>
-    {
-        private readonly IUserRepository _userRepository;
-        private readonly IJwtService _jwtService;
+{
+    private readonly IUserRepository _userRepository;
+    private readonly IJwtService _jwtService;
 
-        public LoginHandler(IUserRepository userRepository, IJwtService jwtService)
+    public LoginHandler(IUserRepository userRepository, IJwtService jwtService)
+    {
+        _jwtService = jwtService;
+        _userRepository = userRepository;
+    }
+
+    public async Task<LoginResultDto> Handle(LoginCommand request, CancellationToken cancellationToken)
+    {
+        var user = await GetUserAsync(request.Email, cancellationToken);
+        ValidateUser(user, request.Password);
+
+        var accessToken = _jwtService.GenerateJWTToken(user, user.Role);
+        var refreshToken = _jwtService.GenerateRefreshToken(user.Id.ToString());
+
+        return new LoginResultDto
         {
-            _jwtService = jwtService;
-            _userRepository = userRepository;
+            Success = true,
+            Token = accessToken,
+            FullName = user.FullName ?? user.Email,
+            refreshToken = refreshToken,
+            Role = user.Role
+        };
+    }
+
+    private async Task<User> GetUserAsync(string email, CancellationToken cancellationToken)
+    {
+        var user = await _userRepository.FindByEmailAsync(email, cancellationToken);
+        if (user == null)
+        {
+            throw new Exception("Sai tên đăng nhập hoặc mật khẩu");
+        }
+        return user;
+    }
+
+    private void ValidateUser(User user, string password)
+    {
+        if (!user.IsActive)
+        {
+            throw new Exception("Tài khoản của bạn đã bị khóa");
         }
 
-        public async Task<LoginResultDto> Handle(LoginCommand request, CancellationToken cancellationToken)
+        var isPasswordValid = _userRepository.Verify(password, user.PasswordHash ?? "");
+        if (!isPasswordValid)
         {
-            // Lấy thông tin người dùng từ username
-            var user = await _userRepository.FindByEmailAsync(request.Email, cancellationToken);
-
-            // Kiểm tra user không tồn tại hoặc bị vô hiệu hóa
-            if (user == null)
-            {
-                throw new Exception("Sai tên đăng nhập hoặc mật khẩu"); // Sai tên đăng nhập hoặc mật khẩu
-            }
-
-            if (user.IsActive == false)
-            {
-                throw new Exception("Tài khoản của bạn đã bị khóa"); // Tài khoản của bạn đã bị khóa
-            }
-
-            // Xác minh mật khẩu
-            var isPasswordValid = _userRepository.Verify(request.Password, user.PasswordHash ?? "");
-            if (!isPasswordValid)
-            {
-                throw new Exception("Sai mật khẩu"); // Sai mật khẩu
-            }
-
-            // Lấy role của người dùng
-
-            // Tạo access token và refresh token
-            var accessToken = _jwtService.GenerateJWTToken(user, user.Role);
-            var refreshToken = _jwtService.GenerateRefreshToken(user.Id.ToString());
-
-            // Trả về kết quả đăng nhập thành công
-            return new LoginResultDto
-            {
-                Success = true,
-                Token = accessToken,
-                FullName = user.FullName ?? user.Email,
-                refreshToken = refreshToken,
-                Role = user.Role
-            };
+            throw new Exception("Sai mật khẩu");
         }
     }
+}

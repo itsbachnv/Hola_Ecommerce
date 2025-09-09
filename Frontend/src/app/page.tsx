@@ -1,6 +1,4 @@
 // src/app/page.tsx
-import Header from "@/components/homepage/Header";
-import Footer from "@/components/homepage/Footer";
 import ServiceFeatures from "@/components/homepage/ServiceFeatures";
 import Banner from "@/components/homepage/Banner";
 import HeroSection from "@/components/homepage/HeroSection";
