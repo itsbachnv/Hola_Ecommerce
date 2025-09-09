@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from '@/stores/auth'
 import React from 'react'
 
 type Props = {
@@ -16,6 +17,7 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
   const [scrolled, setScrolled] = useState(false)
   const [show, setShow] = useState(true)
   const lastY = useRef(0)
+  const { isAuthenticated, user, logout } = useAuth()
 
   useEffect(() => {
     const onScroll = () => {
@@ -98,12 +100,39 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
                   )}
                 </Link>
 
-                <Link href='/login' className='grid h-10 w-10 place-items-center rounded-xl ring-1 ring-black/10 hover:bg-black/5'>
-                  <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
-                    <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' />
-                    <circle cx='12' cy='7' r='4' />
-                  </svg>
-                </Link>
+                {/* User/Login Button */}
+                {isAuthenticated ? (
+                  <div className="flex items-center gap-2">
+                    <Link 
+                      href={user?.role === 'Admin' || user?.role === 'Staff' ? '/dashboard' : '/profile'} 
+                      className='grid h-10 w-10 place-items-center rounded-xl ring-1 ring-black/10 hover:bg-black/5'
+                      title={`Xin chào ${user?.name}`}
+                    >
+                      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+                        <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' />
+                        <circle cx='12' cy='7' r='4' />
+                      </svg>
+                    </Link>
+                    <button 
+                      onClick={logout}
+                      className='grid h-10 w-10 place-items-center rounded-xl ring-1 ring-red-200 hover:bg-red-50 text-red-600'
+                      title="Đăng xuất"
+                    >
+                      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+                        <path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' />
+                        <polyline points='16,17 21,12 16,7' />
+                        <line x1='21' y1='12' x2='9' y2='12' />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <Link href='/login' className='grid h-10 w-10 place-items-center rounded-xl ring-1 ring-black/10 hover:bg-black/5'>
+                    <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+                      <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' />
+                      <circle cx='12' cy='7' r='4' />
+                    </svg>
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -259,7 +288,7 @@ function MegaMenu() {
 
   useEffect(() => {
     setMounted(true);
-    fetch('https://localhost:5000/categories')
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/categories`)
       .then(res => res.json())
       .then((data) => {
         if (Array.isArray(data)) {

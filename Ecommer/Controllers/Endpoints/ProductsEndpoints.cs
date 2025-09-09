@@ -55,6 +55,21 @@ public static class ProductsEndpoints
         })
         .RequireAuthorization("AdminPolicy");
 
+        group.MapPost("{id:long}/images", async Task<Results<Ok<string>, NotFound, BadRequest>> (
+                HttpContext ctx, long id, IProductRepository repo, CancellationToken ct) =>
+            {
+                var form = await ctx.Request.ReadFormAsync(ct);
+                var file = form.Files.FirstOrDefault();
+                if (file is null) return TypedResults.BadRequest();
+
+                var product = await repo.FindAsync(id, ct);
+                if (product is null) return TypedResults.NotFound();
+
+                var url = await repo.UploadImageAsync(id, file, ct);
+                return TypedResults.Ok(url);
+            })
+            .RequireAuthorization("AdminPolicy");
+        
         return app;
     }
 }

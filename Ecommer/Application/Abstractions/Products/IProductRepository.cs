@@ -26,4 +26,9 @@ public interface IProductRepository
         int page,
         int pageSize,
         CancellationToken ct = default);
+
+    Task<string> UploadImageAsync(long productId, IFormFile file, CancellationToken ct = default);
+    
+    Task<bool> RemoveImageAsync(long productId, string imageUrl, CancellationToken ct = default);
+    
 }

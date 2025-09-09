@@ -1,9 +1,7 @@
 // src/app/layout.tsx
 import './globals.css';
 import type { Metadata } from "next";
-import Headers from "@/components/homepage/Header";
-import Footer from '@/components/homepage/Footer';
-import { Toaster } from 'react-hot-toast';
+import ConditionalLayout from '@/components/layout/ConditionalLayout';
 
 export const metadata: Metadata = {
   title: "Hola Ecommerce",
@@ -14,12 +12,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="tc-new-price">
       <body className="font-sans bg-white text-black">
-        <main className="min-h-screen">
-          <Headers/>
-          <Toaster position="top-right" />
+        <ConditionalLayout>
           {children}
-          <Footer />
-        </main>
+        </ConditionalLayout>
       </body>
     </html>
   );

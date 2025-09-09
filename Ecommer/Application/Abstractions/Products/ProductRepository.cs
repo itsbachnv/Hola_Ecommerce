@@ -1,5 +1,6 @@
 // Infrastructure/Repositories/ProductRepository.cs
 
+using Ecommer.Application.Abstractions.Cloudary;
 using Ecommer.Application.Products.Dtos;
 
 namespace Ecommer.Infrastructure.Repositories;
@@ -11,7 +12,12 @@ using Microsoft.EntityFrameworkCore;
 public class ProductRepository : IProductRepository
 {
     private readonly AppDbContext _db;
-    public ProductRepository(AppDbContext db) => _db = db;
+    private readonly ICloudinaryService _cloudinary;
+    public ProductRepository(AppDbContext db, ICloudinaryService cloudinary)
+    {
+        _db = db;
+        _cloudinary = cloudinary;
+    }
 
     public Task<Product?> FindAsync(long id, CancellationToken ct = default) =>
         _db.Products.FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -80,5 +86,33 @@ public class ProductRepository : IProductRepository
             .ToListAsync(ct);
 
         return new PagedResult<ProductDto>(items, total, page, pageSize);
+    }
+
+    public async Task<string> UploadImageAsync(long productId, IFormFile file, CancellationToken ct = default)
+    {
+        var product = await _db.Products.Include(p => p.Images)
+            .FirstOrDefaultAsync(p => p.Id == productId, ct);
+        if (product == null) throw new KeyNotFoundException("Product not found");
+
+        // Upload lên Cloudinary
+        var imageUrl = await _cloudinary.UploadImageAsync(file, "product-images");
+
+        // Lưu vào DB
+        var image = new ProductImage
+        {
+            ProductId = productId,
+            Url = imageUrl,
+            IsPrimary = !product.Images.Any()
+        };
+
+        product.Images.Add(image);
+        await _db.SaveChangesAsync(ct);
+
+        return imageUrl;
+    }
+
+    public Task<bool> RemoveImageAsync(long productId, string imageUrl, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
     }
 }

@@ -3,8 +3,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useAuth } from '@/stores/auth'
+import { useRouter } from 'next/navigation'
+import ClientOnlyMotion from '@/components/ui/ClientOnlyMotion'
 
 export default function GlamLogin() {
   const [email, setEmail] = useState('')
@@ -13,7 +15,8 @@ export default function GlamLogin() {
   const [remember, setRemember] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const prefersReduced = useReducedMotion()
+  const { setUser, setToken } = useAuth()
+  const router = useRouter()
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,25 +38,58 @@ export default function GlamLogin() {
         },
         body: JSON.stringify({ email, password, remember }),
       });
+      
       let data;
       try {
         data = await res.json();
       } catch {
         data = {};
       }
+      
       if (!res.ok) {
         setError(data.detail || data.message || 'Login failed. Please try again.');
         return;
       }
-      if (data.token) {
+      
+      if (data.token && data.success) {
+        // Create user object from backend response
+        const user = {
+          id: Math.random().toString(36), // Backend doesn't return user ID, generate temporary one
+          name: data.fullName || data.FullName || email.split('@')[0],
+          email: email,
+          role: data.role || data.Role || 'Customer',
+          phone: '',
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Store token and user in localStorage (for persistence)
         localStorage.setItem('token', data.token);
-        console.log(data.fullName);
-        localStorage.setItem('loginSuccess', data.fullName);
-        window.location.href = '/products';
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        // Update auth store
+        setUser(user);
+        setToken(data.token);
+        
+        // Show success toast
+        toast.success(`Welcome back, ${user.name}!`);
+        
+        // Redirect based on user role
+        switch (user.role) {
+          case 'Admin':
+          case 'Staff':
+            router.push('/dashboard');
+            break;
+          case 'Customer':
+          default:
+            router.push('/products');
+            break;
+        }
       } else {
         setError('Login failed. Please try again.');
       }
-    } catch (e) {
+    } catch {
       setError('Login failed. Please try again.');
     } finally {
       setLoading(false);
@@ -69,11 +105,9 @@ export default function GlamLogin() {
 
       <div className='mx-auto flex min-h-screen max-w-[1440px] flex-col md:flex-row items-stretch md:items-center gap-0 md:gap-10 px-4 md:px-16 lg:px-24 py-10'>
         {/* Left: Login card */}
-        <motion.div
-          initial={{ opacity: 0, y: prefersReduced ? 0 : 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <ClientOnlyMotion
           className='w-full md:w-1/2 flex items-center justify-center'
+          delay={0}
         >
           <div className='w-full max-w-md'>
             <h1 className='text-3xl md:text-4xl font-extrabold mb-8 text-center md:text-left'>Login</h1>
@@ -177,14 +211,12 @@ export default function GlamLogin() {
               </button>
             </div>
           </div>
-        </motion.div>
+        </ClientOnlyMotion>
 
         {/* Right: New Customer card */}
-        <motion.div
-          initial={{ opacity: 0, y: prefersReduced ? 0 : 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.05 }}
+        <ClientOnlyMotion
           className='w-full md:w-1/2 bg-[#fafafa] flex items-center justify-center'
+          delay={0.05}
         >
           <div className='w-full max-w-md p-8 md:p-12'>
             <h2 className='text-3xl md:text-4xl font-extrabold mb-4 text-center md:text-left'>New Customer</h2>
@@ -214,7 +246,7 @@ export default function GlamLogin() {
               <p className='mt-2 text-right text-xs text-gray-400'>For all orders from $150</p>
             </div>
           </div>
-        </motion.div>
+        </ClientOnlyMotion>
       </div>
     </div>
   )
