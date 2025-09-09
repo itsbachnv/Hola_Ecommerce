@@ -1,9 +1,7 @@
-using Ecommer.Application.Abstractions;
-using Ecommer.Application.Products.Dtos;
-using Ecommer.Domain;
-using Ecommer.Infrastructure;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
+using Ecommer.Application.Abstractions;
+using Ecommer.Application.Abstractions.Products;
+using Ecommer.Application.Products.Dtos;
 
 namespace Ecommer.Application.Products.Queries;
 
@@ -15,15 +13,27 @@ public record ListProductsQuery(
     string? Status,
     string? Sort,
     int Page = 1,
-    int PageSize = 20
+    int PageSize = 20,
+    bool IsAdmin = false // Thêm tham số này
 ) : IRequest<PagedResult<ProductDto>>, IPagedQuery;
 
 // handler
 public class ListProductsHandler : IRequestHandler<ListProductsQuery, PagedResult<ProductDto>>
 {
-    private readonly IProductRepository  _productRepository;
-    public ListProductsHandler(IProductRepository productRepository) => _productRepository = productRepository;
+    private readonly IProductRepository _productRepository;
+    
+    public ListProductsHandler(IProductRepository productRepository) => 
+        _productRepository = productRepository;
 
-    public Task<PagedResult<ProductDto>> Handle(ListProductsQuery q, CancellationToken ct) =>
-        _productRepository.ListAsync(q.Search, q.BrandId, q.CategoryId, q.Status, q.Sort, q.Page, q.PageSize, ct);
+    public Task<PagedResult<ProductDto>> Handle(ListProductsQuery request, CancellationToken cancellationToken) =>
+        _productRepository.ListAsync(
+            request.Search, 
+            request.BrandId, 
+            request.CategoryId, 
+            request.Status, 
+            request.Sort, 
+            request.Page, 
+            request.PageSize, 
+            request.IsAdmin, 
+            cancellationToken);
 }

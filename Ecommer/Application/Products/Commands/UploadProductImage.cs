@@ -1,5 +1,6 @@
 using Ecommer.Application.Abstractions;
 using Ecommer.Application.Abstractions.Cloudary;
+using Ecommer.Application.Abstractions.Products;
 using MediatR;
 
 namespace Ecommer.Application.Products.Commands;

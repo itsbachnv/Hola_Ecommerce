@@ -1,4 +1,5 @@
 using Ecommer.Application.Abstractions;
+using Ecommer.Application.Abstractions.Products;
 using Ecommer.Application.Abstractions.Users;
 using Ecommer.Application.Notifications.Commands;
 using Ecommer.Application.Products.Dtos;

@@ -65,6 +65,7 @@ app.UseAuthorization();
 
 // Map feature endpoints
 app.MapProducts();
+app.MapVariantsEndpoints();
 app.MapUsers();
 app.MapCategories();
 app.MapNotifications();

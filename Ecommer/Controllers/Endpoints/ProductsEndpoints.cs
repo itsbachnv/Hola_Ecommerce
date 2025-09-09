@@ -1,9 +1,11 @@
 using Ecommer.Application.Abstractions;
+using Ecommer.Application.Abstractions.Products;
 using Ecommer.Application.Products.Commands;
 using Ecommer.Application.Products.Dtos;
 using Ecommer.Application.Products.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Security.Claims;
 
 public static class ProductsEndpoints
 {
@@ -14,17 +16,26 @@ public static class ProductsEndpoints
 
         group.MapGet("", async Task<Ok<PagedResult<ProductDto>>> (
             string? search, long? brandId, long? categoryId, string? status, string? sort,
-            ISender sender, int page = 1, int pageSize = 20) =>
+            HttpContext context, ISender sender, int page = 1, int pageSize = 20) =>
         {
-            var result =
-                await sender.Send(new ListProductsQuery(search, brandId, categoryId, status, sort, page, pageSize));
+            // Check xem user có role Admin không
+            var isAdmin = context.User.IsInRole("Admin") || 
+                         context.User.HasClaim(ClaimTypes.Role, "Admin") ||
+                         context.User.HasClaim("role", "Admin");
+
+            var result = await sender.Send(new ListProductsQuery(search, brandId, categoryId, status, sort, page, pageSize, isAdmin));
             return TypedResults.Ok(result);
         });
 
         // Get by id
-        group.MapGet("{id:long}", async Task<Results<Ok<ProductDto>, NotFound>> (long id, ISender sender) =>
+        group.MapGet("{id:long}", async Task<Results<Ok<ProductDto>, NotFound>> (long id, HttpContext context, ISender sender) =>
         {
-            var data = await sender.Send(new GetProductByIdQuery(id));
+            // Check role cho GetById
+            var isAdmin = context.User.IsInRole("Admin") || 
+                         context.User.HasClaim(ClaimTypes.Role, "Admin") ||
+                         context.User.HasClaim("role", "Admin");
+
+            var data = await sender.Send(new GetProductByIdQuery(id, isAdmin));
             return data is null ? TypedResults.NotFound() : TypedResults.Ok(data);
         });
 

@@ -1,0 +1,74 @@
+/* Responsive fixes cho ProductManagement component */
+
+/* Đảm bảo table không overflow */
+.product-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.product-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.product-table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.product-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.product-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Đảm bảo không có white space ở bên phải */
+.product-management-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Responsive breakpoints cho custom xs size */
+@media (min-width: 475px) {
+  .xs\:inline {
+    display: inline;
+  }
+  
+  .xs\:hidden {
+    display: none;
+  }
+}
+
+@media (max-width: 474px) {
+  .xs\:inline {
+    display: none;
+  }
+  
+  .xs\:hidden {
+    display: inline;
+  }
+}
+
+/* Fix cho action menu dropdown */
+.action-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 50;
+  min-width: 128px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Đảm bảo modal responsive */
+@media (max-width: 640px) {
+  .modal-content {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+}

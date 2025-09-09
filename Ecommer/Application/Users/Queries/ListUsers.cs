@@ -1,5 +1,6 @@
 using Ecommer.Application.Abstractions;
 using Ecommer.Application.Abstractions.Users;
+using Ecommer.Application.Abstractions.Variants;
 using Ecommer.Application.Users.Dtos;
 using MediatR;
 

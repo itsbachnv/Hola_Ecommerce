@@ -1,17 +1,12 @@
-// Container/ServiceRegister/InfrastructureServiceRegistration.cs
-using Ecommer.Application.Abstractions;
 using Ecommer.Application.Abstractions.Categories;
 using Ecommer.Application.Abstractions.Cloudary;
 using Ecommer.Application.Abstractions.Notifications;
+using Ecommer.Application.Abstractions.Products;
 using Ecommer.Application.Abstractions.Users;
+using Ecommer.Application.Abstractions.Variants;
 using Ecommer.Infrastructure;
 using Ecommer.Infrastructure.Notifications;
-using Ecommer.Infrastructure.Repositories;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Ecommer.Container.ServiceRegister;
 
 public static class InfrastructureServiceRegistration
@@ -48,6 +43,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
+        services.AddScoped<IVariantRepository, VariantRepository>();
         services.AddScoped<IJwtService, JwtService>();
 
         return services;

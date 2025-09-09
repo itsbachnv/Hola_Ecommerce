@@ -11,20 +11,22 @@ export interface User {
 }
 
 export interface Category {
-  id: string
+  id: number
   name: string
   description?: string
   image?: string
-  parentId?: string
+  parentId?: number | null
+  parentName?: string | null
+  slug?: string
   children?: Category[]
   createdAt: string
   updatedAt: string
 }
 
 export interface ProductVariant {
-  id: string
+  id: number
   sku: string
-  productId: string
+  productId: number
   name: string
   price: number
   originalPrice?: number
@@ -35,18 +37,24 @@ export interface ProductVariant {
 }
 
 export interface Product {
-  id: string
+  id: number
   name: string
   description: string
   shortDescription?: string
-  categoryId: string
-  category?: Category
-  brand?: string
+  slug: string
+  categoryId: number
+  categoryName?: string
+  brandId?: number
+  brandName?: string
   images: string[]
+  primaryImageUrl?: string | null
   variants: ProductVariant[]
-  tags: string[]
-  isActive: boolean
-  isFeatured: boolean
+  attributes?: Record<string, unknown> | null
+  maxPrice?: number | null
+  minPrice?: number | null
+  status: 'ACTIVE' | 'INACTIVE' | 'DRAFT'
+  tags?: string[]
+  isFeatured?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -166,7 +174,7 @@ export interface Notification {
   title: string
   message: string
   isRead: boolean
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   createdAt: string
 }
 
@@ -263,16 +271,29 @@ export interface CheckoutForm {
   notes?: string
 }
 
-export interface ProductForm {
+export type VariantForm = {
+  id?: number
+  sku: string
+  name: string
+  price: number
+  originalPrice?: number
+  stock: number
+  attributes: Record<string, string>
+  images: string[]
+  isActive?: boolean
+}
+
+export type ProductForm = {
   name: string
   description: string
   shortDescription?: string
-  categoryId: string
-  brand?: string
-  tags: string[]
-  isActive: boolean
-  isFeatured: boolean
-  variants: Omit<ProductVariant, 'id' | 'productId'>[]
+  categoryId: number
+  brandId?: string
+  tags?: string[]
+  status: string
+  isFeatured?: boolean
+  isActive?: boolean
+  variants: VariantForm[]
 }
 
 export interface VoucherForm {

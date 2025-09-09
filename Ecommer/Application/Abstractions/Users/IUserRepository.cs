@@ -1,3 +1,4 @@
+using Ecommer.Application.Abstractions.Variants;
 using Ecommer.Application.Users.Dtos;
 using Ecommer.Domain;
 

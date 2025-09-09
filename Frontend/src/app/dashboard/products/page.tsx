@@ -9,138 +9,9 @@ import { Product, Category, ProductForm } from '@/types'
 import toast from 'react-hot-toast'
 
 // Mock data sản phẩm
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Nike Air Max 270',
-    description: 'Giày thể thao Nike Air Max 270 với đệm khí tối đa và thiết kế hiện đại',
-    shortDescription: 'Giày thể thao Nike với đệm khí tối đa',
-    categoryId: '1',
-    brand: 'Nike',
-    images: ['/products/nike-air-max-270.jpg'],
-    variants: [
-      {
-        id: 'v1',
-        sku: 'NIKE-AM270-42-BLK',
-        productId: '1',
-        name: 'Size 42 - Đen',
-        price: 3500000,
-        stock: 25,
-        attributes: { size: '42', color: 'Đen' },
-        images: ['/products/nike-air-max-270-black.jpg'],
-        isActive: true
-      },
-      {
-        id: 'v2',
-        sku: 'NIKE-AM270-43-WHT',
-        productId: '1',
-        name: 'Size 43 - Trắng',
-        price: 3500000,
-        stock: 30,
-        attributes: { size: '43', color: 'Trắng' },
-        images: ['/products/nike-air-max-270-white.jpg'],
-        isActive: true
-      }
-    ],
-    tags: ['giày thể thao', 'nike', 'air max'],
-    isActive: true,
-    isFeatured: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    name: 'Adidas Ultraboost 22',
-    description: 'Giày chạy bộ Adidas Ultraboost 22 với công nghệ Boost Energy Return',
-    shortDescription: 'Giày chạy bộ với công nghệ Boost',
-    categoryId: '1',
-    brand: 'Adidas',
-    images: ['/products/adidas-ultraboost-22.jpg'],
-    variants: [
-      {
-        id: 'v3',
-        sku: 'ADS-UB22-41-BLU',
-        productId: '2',
-        name: 'Size 41 - Xanh dương',
-        price: 4200000,
-        stock: 15,
-        attributes: { size: '41', color: 'Xanh dương' },
-        images: ['/products/adidas-ultraboost-22-blue.jpg'],
-        isActive: true
-      }
-    ],
-    tags: ['giày chạy bộ', 'adidas', 'ultraboost'],
-    isActive: true,
-    isFeatured: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '3',
-    name: 'Converse Chuck Taylor All Star',
-    description: 'Giày sneaker cổ điển Converse Chuck Taylor All Star phong cách retro',
-    shortDescription: 'Giày sneaker cổ điển Converse',
-    categoryId: '2',
-    brand: 'Converse',
-    images: ['/products/converse-chuck-taylor.jpg'],
-    variants: [
-      {
-        id: 'v4',
-        sku: 'CNV-CT-40-RED',
-        productId: '3',
-        name: 'Size 40 - Đỏ',
-        price: 1800000,
-        stock: 40,
-        attributes: { size: '40', color: 'Đỏ' },
-        images: ['/products/converse-chuck-taylor-red.jpg'],
-        isActive: true
-      },
-      {
-        id: 'v5',
-        sku: 'CNV-CT-41-BLK',
-        productId: '3',
-        name: 'Size 41 - Đen',
-        price: 1800000,
-        stock: 35,
-        attributes: { size: '41', color: 'Đen' },
-        images: ['/products/converse-chuck-taylor-black.jpg'],
-        isActive: true
-      }
-    ],
-    tags: ['sneaker', 'converse', 'cổ điển'],
-    isActive: true,
-    isFeatured: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-]
+const mockProducts: Product[] = []
 
-const mockCategories: Category[] = [
-  {
-    id: '1',
-    name: 'Giày Thể Thao',
-    description: 'Giày dành cho hoạt động thể thao và tập luyện',
-    image: '/categories/sports-shoes.jpg',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    name: 'Giày Sneaker',
-    description: 'Giày sneaker thời trang cho nam và nữ',
-    image: '/categories/sneakers.jpg',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '3',
-    name: 'Giày Cao Gót',
-    description: 'Giày cao gót thời trang cho nữ',
-    image: '/categories/high-heels.jpg',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-]
+const mockCategories: Category[] = []
 
 export default function ProductsManagementPage() {
   const { isAuthenticated, isAdmin, isStaff, isInitialized } = useAuth()
@@ -170,17 +41,18 @@ export default function ProductsManagementPage() {
     try {
       // TODO: Gọi API để tạo sản phẩm mới
       const newProduct: Product = {
-        id: Math.random().toString(36),
+        id: Math.floor(Math.random() * 1000000),
         name: productData.name,
         description: productData.description,
         shortDescription: productData.shortDescription,
         categoryId: productData.categoryId,
-        brand: productData.brand,
+        brandId: productData.brandId ? Number(productData.brandId) : undefined,
         tags: productData.tags,
         images: ['/products/default.jpg'], // Default image
         variants: [],
-        isActive: productData.isActive,
+        status: productData.status as 'ACTIVE' | 'INACTIVE' | 'DRAFT',
         isFeatured: productData.isFeatured,
+        slug: productData.slug ?? '', // Add slug property
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
@@ -199,16 +71,16 @@ export default function ProductsManagementPage() {
     try {
       // TODO: Gọi API để cập nhật sản phẩm
       setProducts(prev => prev.map(product => 
-        product.id === id 
+        String(product.id) === id 
           ? { 
               ...product, 
               name: productData.name,
               description: productData.description,
               shortDescription: productData.shortDescription,
               categoryId: productData.categoryId,
-              brand: productData.brand,
+              brand: productData.brandId,
               tags: productData.tags,
-              isActive: productData.isActive,
+              isActive: productData.status,
               isFeatured: productData.isFeatured,
               updatedAt: new Date().toISOString() 
             }
@@ -226,7 +98,7 @@ export default function ProductsManagementPage() {
     setIsLoading(true)
     try {
       // TODO: Gọi API để xóa sản phẩm
-      setProducts(prev => prev.filter(product => product.id !== id))
+      setProducts(prev => prev.filter(product => String(product.id) !== id))
       toast.success('Xóa sản phẩm thành công!')
     } catch {
       toast.error('Có lỗi xảy ra khi xóa sản phẩm')
@@ -240,7 +112,7 @@ export default function ProductsManagementPage() {
     try {
       // TODO: Gọi API để thay đổi trạng thái sản phẩm
       setProducts(prev => prev.map(product => 
-        product.id === id 
+        String(product.id) === id 
           ? { ...product, isActive, updatedAt: new Date().toISOString() }
           : product
       ))
@@ -299,7 +171,7 @@ export default function ProductsManagementPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Đang Hoạt Động</p>
                   <p className="text-3xl font-bold text-green-600">
-                    {products.filter(p => p.isActive).length}
+                    {products.filter(p => p.status === 'ACTIVE').length}
                   </p>
                 </div>
                 <div className="bg-green-100 p-3 rounded-full">
@@ -315,7 +187,7 @@ export default function ProductsManagementPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Không Hoạt Động</p>
                   <p className="text-3xl font-bold text-red-600">
-                    {products.filter(p => !p.isActive).length}
+                    {products.filter(p => p.status === 'INACTIVE').length}
                   </p>
                 </div>
                 <div className="bg-red-100 p-3 rounded-full">

@@ -1,4 +1,5 @@
 using Ecommer.Application.Abstractions;
+using Ecommer.Application.Abstractions.Products;
 using Ecommer.Application.Products.Dtos;
 using Ecommer.Infrastructure;
 using MediatR;

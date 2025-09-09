@@ -37,7 +37,6 @@ export default function FeaturedProducts() {
         setProducts(data);
       } catch (error: any) {
         if (error?.name !== "AbortError") {
-          console.error("Lỗi khi gọi API demo:", error);
           setErr("Không tải được danh sách sản phẩm. Vui lòng thử lại.");
         }
       } finally {

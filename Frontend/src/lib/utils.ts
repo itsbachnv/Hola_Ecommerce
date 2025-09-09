@@ -13,11 +13,25 @@ export function formatPrice(price: number): string {
 }
 
 export function formatDate(date: string | Date): string {
-  return new Intl.DateTimeFormat('vi-VN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date))
+  if (!date) return 'N/A'
+  
+  try {
+    const dateObj = new Date(date)
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid Date'
+    }
+    
+    return new Intl.DateTimeFormat('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(dateObj)
+  } catch (error) {
+    console.error('Error formatting date:', date, error)
+    return 'Invalid Date'
+  }
 }
