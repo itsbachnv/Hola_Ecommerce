@@ -25,7 +25,10 @@ public interface IProductRepository
     void Remove(Product entity);
     Task<bool> SlugExistsAsync(string slug, long? excludeId = null, CancellationToken ct = default);
     Task<ProductDto?> GetBySlugAsync(string slug, bool isAdmin = false, CancellationToken ct = default);
+    bool GetByNameAsync(string slug, bool isAdmin = false, CancellationToken ct = default);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
-    Task<string> UploadImageAsync(long productId, IFormFile file, CancellationToken ct = default);
+    Task<string> UploadImageAsync(long productId, IFormFile file, bool isPrimary = false, CancellationToken ct = default);
+    Task<List<string>> UploadImagesAsync(long productId, IFormFileCollection files, List<int> sortOrders, List<bool> isPrimaryFlags, CancellationToken ct = default);
     Task<bool> RemoveImageAsync(long productId, string imageUrl, CancellationToken ct = default);
+    Task<bool> SetPrimaryImageAsync(long productId, string imageUrl, CancellationToken ct = default);
 }

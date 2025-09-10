@@ -34,8 +34,12 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Produc
     {
         // Rule nhẹ: slug unique
         if (await _repo.SlugExistsAsync(c.Slug, null, ct))
-            throw new InvalidOperationException("Slug already exists");
+            throw new InvalidOperationException("Slug đã tồn tại");
 
+        if (_repo.GetByNameAsync(c.Slug, true, ct)) //true is exist
+        {
+            throw new Exception("Tên sản phẩm đã tồn tại");
+        }
         var entity = new Product
         {
             Name = c.Name.Trim(),

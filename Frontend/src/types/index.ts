@@ -79,6 +79,7 @@ export interface Product {
   brandName?: string
   primaryImageUrl?: string | null
   maxPrice?: number | null
+  compareAtPrice?: number | null
   minPrice?: number | null
   tags?: string[]
   isFeatured?: boolean
@@ -447,6 +448,8 @@ export type ProductForm = {
   status?: string // Made optional
   images?: ProductImage[] // Changed from string[] to ProductImage[]
   variants?: VariantForm[] // Made optional
+  newImageFiles?: File[] // For new image uploads during edit
+  imagesToDelete?: number[] // IDs of existing images to delete
 }
 
 export interface VoucherForm {

@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Ecommer.Application.Products.Commands;
 
-public record UploadProductImageCommand(long ProductId, IFormFile File) : IRequest<string>;
+public record UploadProductImageCommand(long ProductId, bool isPrimary, IFormFile File) : IRequest<string>;
 
 public class UploadProductImageHandler : IRequestHandler<UploadProductImageCommand, string>
 {
@@ -21,6 +21,6 @@ public class UploadProductImageHandler : IRequestHandler<UploadProductImageComma
     public async Task<string> Handle(UploadProductImageCommand request, CancellationToken ct)
     {
         var imageUrl = await _cloudinary.UploadImageAsync(request.File, "product-images");
-        return await _repo.UploadImageAsync(request.ProductId, request.File, ct);
+        return await _repo.UploadImageAsync(request.ProductId, request.File, request.isPrimary, ct);
     }
 }

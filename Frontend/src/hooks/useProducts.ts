@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Product, ProductForm, ProductVariant } from '@/types'
 import { useAuthStore } from '@/stores/auth'
+import toast from 'react-hot-toast'
 
 interface ProductFilters {
   search?: string
@@ -210,7 +211,7 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      toast.error(`${errorData.detail}`)
     }
     
     const result = await response.json()
@@ -255,9 +256,6 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
             body: JSON.stringify(updateVariantData)
           })
           
-          if (!updateResponse.ok) {
-            console.warn('Failed to update default variant:', updateResponse.status)
-          }
         } else {
           // Create additional variants
           const createVariantData = {
@@ -276,10 +274,6 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
             headers: getAuthHeaders(),
             body: JSON.stringify(createVariantData)
           })
-          
-          if (!createResponse.ok) {
-            console.warn('Failed to create variant:', createResponse.status)
-          }
         }
       }
     }
@@ -287,43 +281,73 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
     // If we have images in the form data, upload them after product creation
     if (productData.images && productData.images.length > 0) {
       const imagesToUpload: File[] = []
+      let primaryImageIndex = 0
       
-      for (const image of productData.images) {
+      for (let i = 0; i < productData.images.length; i++) {
+        const image = productData.images[i]
         try {
           if (image.url.startsWith('blob:')) {
             // Convert blob URL to File
-            const file = await blobUrlToFile(image.url, `product-${createdProduct.id}-${Date.now()}.jpg`)
+            const file = await blobUrlToFile(image.url, `product-${createdProduct.id}-${Date.now()}-${i}.jpg`)
             imagesToUpload.push(file)
-          } else {
-            // Handle existing image URLs (for edit cases)
-            console.log('Image already exists:', image.url)
+            
+            // Track which file corresponds to the primary image
+            if (image.isPrimary) {
+              primaryImageIndex = imagesToUpload.length - 1
+            }
           }
         } catch (error) {
-          console.warn('Failed to process image:', error)
         }
       }
       
-      // Upload all new images
+      // Upload all new images in batch
       if (imagesToUpload.length > 0) {
         try {
-          const uploadedUrls = await uploadProductImages(createdProduct.id, imagesToUpload)
-          console.log('Images uploaded successfully:', uploadedUrls)
+          const uploadedUrls = await uploadProductImages(createdProduct.id, imagesToUpload, primaryImageIndex)
         } catch (error) {
-          console.warn('Failed to upload some images:', error)
+          toast.error('Upload ảnh thất bại')
         }
       }
     }
-    
+    toast.success('Tạo sản phẩm thành công')
     return createdProduct
   } catch (error) {
     throw error
   }
 }
 
-// Update Product function
+// Update Product function (now supports variants and images)
 export async function updateProduct(id: string, productData: ProductForm): Promise<Product> {
   try {
     const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/products/${id}`
+    
+    // Prepare images data including deletions
+    const allImagesData = []
+    
+    // Add existing images (some may be marked for deletion)
+    if (productData.images) {
+      const existingImages = productData.images.filter(img => !img.url.startsWith('blob:'))
+      allImagesData.push(...existingImages.map(img => ({
+        id: img.id,
+        url: img.url,
+        isPrimary: img.isPrimary,
+        sortOrder: img.sortOrder,
+        isDeleted: false // These are not deleted since they're still in the images array
+      })))
+    }
+    
+    // Add images marked for deletion
+    if (productData.imagesToDelete) {
+      productData.imagesToDelete.forEach(imageId => {
+        allImagesData.push({
+          id: imageId,
+          url: null, // URL not needed for deletion
+          isPrimary: false,
+          sortOrder: 0,
+          isDeleted: true
+        })
+      })
+    }
     
     // Prepare data to match UpdateProductCommand
     const requestData = {
@@ -332,9 +356,19 @@ export async function updateProduct(id: string, productData: ProductForm): Promi
       brandId: productData.brandId || null,
       categoryId: productData.categoryId || null,
       description: productData.description || null,
-      status: productData.status || 'ACTIVE'
+      status: productData.status || 'ACTIVE',
+      variants: productData.variants?.map(v => ({
+        id: v.id || null,
+        sku: v.sku,
+        name: v.name,
+        price: v.price,
+        compareAtPrice: v.compareAtPrice || null,
+        stockQty: v.stockQty,
+        weightGrams: v.weightGrams || null,
+        isDeleted: false
+      })) || null,
+      images: allImagesData
     }
-    
     
     const response = await fetch(apiUrl, {
       method: 'PUT',
@@ -348,15 +382,37 @@ export async function updateProduct(id: string, productData: ProductForm): Promi
     }
     
     const result = await response.json()
+    let updatedProduct: Product
     
     // Handle different response formats
     if (result.success && result.data) {
-      return result.data
+      updatedProduct = result.data
     } else if (result.data) {
-      return result.data
+      updatedProduct = result.data
     } else {
-      return result
+      updatedProduct = result
     }
+    
+    // Upload new images if any
+    if (productData.newImageFiles && productData.newImageFiles.length > 0) {
+      try {
+        // Find primary index among new images
+        const newImagePrimaryIndex = productData.images?.findIndex(img => 
+          img.url.startsWith('blob:') && img.isPrimary
+        ) ?? -1
+        
+        // Adjust index to be relative to new images only
+        const newImagesPrimaryIndex = newImagePrimaryIndex >= 0 ? 
+          productData.images!.slice(0, newImagePrimaryIndex)
+            .filter(img => img.url.startsWith('blob:')).length : 0
+        
+        await uploadProductImages(updatedProduct.id, productData.newImageFiles, newImagesPrimaryIndex)
+      } catch (error) {
+        console.warn('Failed to upload new images:', error)
+      }
+    }
+    toast.success('Cập nhật sản phẩm thành công')
+    return updatedProduct
   } catch (error) {
     throw error
   }
@@ -377,7 +433,8 @@ export async function deleteProduct(id: string): Promise<void> {
       const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
-    
+
+    toast.success('Xóa sản phẩm thành công')
   } catch (error) {
     throw error
   }
@@ -480,12 +537,13 @@ function getAuthHeadersForFormData(): HeadersInit {
 }
 
 // Upload Product Image function
-export async function uploadProductImage(productId: number, file: File): Promise<string> {
+export async function uploadProductImage(productId: number, file: File, isPrimary: boolean = false): Promise<string> {
   try {
     const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/products/${productId}/images`
     
     const formData = new FormData()
     formData.append('file', file)
+    formData.append('isPrimary', isPrimary.toString())
     
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -499,16 +557,56 @@ export async function uploadProductImage(productId: number, file: File): Promise
     }
     
     const result = await response.json()
+    toast.success('Upload ảnh thành công')
     return result // Should return the image URL
   } catch (error) {
     throw error
   }
 }
 
-// Upload Multiple Product Images function
-export async function uploadProductImages(productId: number, files: File[]): Promise<string[]> {
-  const uploadPromises = files.map(file => uploadProductImage(productId, file))
-  return Promise.all(uploadPromises)
+// Upload Multiple Product Images function (optimized for batch upload)
+export async function uploadProductImages(productId: number, files: File[], primaryIndex: number = 0): Promise<string[]> {
+  try {
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/products/${productId}/images/batch`
+    
+    const formData = new FormData()
+    
+    // Add all files to FormData
+    files.forEach((file) => {
+      formData.append('files', file)
+    })
+    
+    // Add sortOrders (theo thứ tự index)
+    files.forEach((_, index) => {
+      formData.append('sortOrders', index.toString())
+    })
+    
+    // Add isPrimary flags (chỉ có 1 ảnh được đặt làm primary)
+    files.forEach((_, index) => {
+      formData.append('isPrimary', (index === primaryIndex).toString())
+    })
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: getAuthHeadersForFormData(),
+      body: formData
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+    
+    const result = await response.json()
+    return result.urls || result // Should return array of image URLs
+  } catch (error) {
+    // Fallback to individual uploads if batch upload fails
+    console.warn('Batch upload failed, falling back to individual uploads:', error)
+    const uploadPromises = files.map((file, index) => 
+      uploadProductImage(productId, file, index === primaryIndex)
+    )
+    return Promise.all(uploadPromises)
+  }
 }
 
 // Convert blob URL to File (helper function)
@@ -516,4 +614,42 @@ export async function blobUrlToFile(blobUrl: string, fileName: string = 'image.j
   const response = await fetch(blobUrl)
   const blob = await response.blob()
   return new File([blob], fileName, { type: blob.type })
+}
+
+// Delete Product Image function
+export async function deleteProductImage(productId: number, imageUrl: string): Promise<void> {
+  try {
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/products/${productId}/images?url=${encodeURIComponent(imageUrl)}`
+    
+    const response = await fetch(apiUrl, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+  } catch (error) {
+    throw error
+  }
+}
+
+// Set Primary Image function
+export async function setPrimaryImage(productId: number, imageUrl: string): Promise<void> {
+  try {
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/products/${productId}/images/primary?url=${encodeURIComponent(imageUrl)}`
+    
+    const response = await fetch(apiUrl, {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+  } catch (error) {
+    throw error
+  }
 }

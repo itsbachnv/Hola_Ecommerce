@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useForm, useFieldArray, SubmitHandler } from 'react-hook-form'
-import { Product, ProductForm, Category } from '@/types'
+import { Product, Category, Brand, ProductImage } from '@/types'
+import type { ProductForm } from '@/types'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -35,9 +36,12 @@ export default function ProductManagement() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
 
-  // Fetch categories and products using hooks
+  // Fetch categories, products and brands using hooks (gọi 1 lần duy nhất)
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
+  const { brands, loading: brandsLoading, error: brandsError } = useBrands()
   
   // Memoize filters to prevent unnecessary re-renders
   const productFilters = useMemo(() => ({
@@ -73,9 +77,16 @@ export default function ProductManagement() {
   const handleDeleteProduct = async (id: string) => {
     try {
       await deleteProduct(id)
+      setIsDeleteModalOpen(false)
+      setProductToDelete(null)
       refetch() // Refresh the products list
     } catch (error) {
     }
+  }
+
+  const openDeleteModal = (product: Product) => {
+    setProductToDelete(product)
+    setIsDeleteModalOpen(true)
   }
 
   const handleToggleStatus = async (id: string, isActive: boolean) => {
@@ -136,6 +147,9 @@ export default function ProductManagement() {
               onCancel={() => setIsCreateModalOpen(false)}
               categories={categories}
               categoriesLoading={categoriesLoading}
+              brands={brands}
+              brandsLoading={brandsLoading}
+              brandsError={brandsError}
             />
           </DialogContent>
         </Dialog>
@@ -229,7 +243,8 @@ export default function ProductManagement() {
                 <tr className="border-b">
                 <th className="text-left py-3 px-4">Sản phẩm</th>
                 <th className="text-left py-3 px-4">Danh mục</th>
-                <th className="text-left py-3 px-4">Khoảng giá</th>
+                <th className="text-left py-3 px-4">Khoảng giá bán</th>
+                <th className="text-left py-3 px-4">Giá gốc</th>
                 <th className="text-left py-3 px-4">Tồn kho</th>
                 <th className="text-left py-3 px-4">Trạng thái</th>
                 <th className="text-left py-3 px-4">Ngày tạo</th>
@@ -246,7 +261,7 @@ export default function ProductManagement() {
                       setSelectedProduct(product)
                       setIsEditModalOpen(true)
                     }}
-                    onDelete={() => handleDeleteProduct(String(product.id))}
+                    onDelete={() => openDeleteModal(product)}
                     onToggleStatus={(status) => handleToggleStatus(String(product.id), status)}
                   />
                 ))}
@@ -287,8 +302,51 @@ export default function ProductManagement() {
               }}
               categories={categories}
               categoriesLoading={categoriesLoading}
+              brands={brands}
+              brandsLoading={brandsLoading}
+              brandsError={brandsError}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa sản phẩm</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Bạn có chắc chắn muốn xóa sản phẩm <strong>&quot;{productToDelete?.name}&quot;</strong> không?
+            </p>
+            <p className="text-sm text-red-600">
+              ⚠️ Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan đến sản phẩm.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setIsDeleteModalOpen(false)
+                  setProductToDelete(null)
+                }}
+              >
+                Hủy
+              </Button>
+              <Button 
+                type="button"
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={() => {
+                  if (productToDelete) {
+                    handleDeleteProduct(String(productToDelete.id))
+                  }
+                }}
+              >
+                Xóa sản phẩm
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
@@ -313,6 +371,7 @@ function ProductRow({
   const variants = product.variants && Array.isArray(product.variants) ? product.variants : []
   const minPrice = variants.length > 0 ? Math.min(...variants.map(v => v.price)) : 0
   const maxPrice = variants.length > 0 ? Math.max(...variants.map(v => v.price)) : 0
+  const compareAtPrices = variants.map(v => v.compareAtPrice || 0).filter(price => price > 0)
   const totalStock = variants.reduce((sum, v) => sum + (v.stockQty || 0), 0)
   const isLowStock = totalStock > 0 && totalStock <= 10
   const isOutOfStock = totalStock === 0
@@ -352,6 +411,12 @@ function ProductRow({
           {minPrice === maxPrice 
             ? formatPrice(minPrice)
             : `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`
+          }
+        </span>
+      </td>
+      <td className="py-3 px-4">
+        <span className="text-sm font-medium">
+          {formatPrice(compareAtPrices.length > 0 ? Math.min(...compareAtPrices) : 0)
           }
         </span>
       </td>
@@ -447,21 +512,25 @@ function ProductForm({
   onSubmit, 
   onCancel,
   categories,
-  categoriesLoading 
+  categoriesLoading,
+  brands,
+  brandsLoading,
+  brandsError
 }: {
   product?: Product
   onSubmit: SubmitHandler<ProductForm>
   onCancel: () => void
   categories: Category[]
   categoriesLoading: boolean
+  brands: Brand[]
+  brandsLoading: boolean
+  brandsError: string | null
 }) {
   const [selectedParentCategory, setSelectedParentCategory] = useState('')
   const [selectedChildCategory, setSelectedChildCategory] = useState('')
   const [productImages, setProductImages] = useState<string[]>([])
-  const [imageFiles, setImageFiles] = useState<File[]>([]) // Store actual File objects
-
-  // Fetch brands from API
-  const { brands, loading: brandsLoading, error: brandsError } = useBrands()
+  // Remove unused imageFiles since we now use productImages array
+  const [primaryImageIndex, setPrimaryImageIndex] = useState<number>(0) // Track which image is primary
 
   // Separate parent and child categories
   const parentCategories = categories.filter(cat => cat.parentId === null || cat.parentId === undefined)
@@ -519,9 +588,25 @@ function ProductForm({
   // Set initial images and categories when editing
   useEffect(() => {
     if (product) {
+      // Store the original existing images
+      setExistingImages(product.images || [])
+      
       // Convert ProductImage[] to string[] for display
       const imageUrls = product.images?.map(img => img.url) || []
       setProductImages(imageUrls)
+      
+      // Clear any previous new image files and deletion tracking
+      setNewImageFiles([])
+      setImagesToDelete([])
+      
+      // Find and set primary image index
+      const primaryIndex = product.images?.findIndex(img => img.isPrimary) || 0
+      setPrimaryImageIndex(primaryIndex >= 0 ? primaryIndex : 0)
+      
+      // Set brandId in form
+      if (product.brandId) {
+        setValue('brandId', product.brandId)
+      }
       
       if (categories.length > 0) {
         const productCategoryId = String(product.categoryId)
@@ -537,8 +622,22 @@ function ProductForm({
           }
         }
       }
+    } else {
+      // Reset form when product is null (for create mode)
+      setExistingImages([])
+      setProductImages([])
+      setNewImageFiles([])
+      setImagesToDelete([])
+      setPrimaryImageIndex(0)
+      setSelectedParentCategory('')
+      setSelectedChildCategory('')
     }
-  }, [product, categories])
+  }, [product, categories, setValue])
+
+  // Store File objects for tracking new uploads
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([])
+  const [imagesToDelete, setImagesToDelete] = useState<number[]>([]) // Track existing image IDs to delete
+  const [existingImages, setExistingImages] = useState<ProductImage[]>([]) // Track original existing images
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
@@ -549,13 +648,38 @@ function ProductForm({
       
       // Store both blob URLs for preview and file objects for upload
       setProductImages(prev => [...prev, ...newImages])
-      setImageFiles(prev => [...prev, ...filesArray])
+      setNewImageFiles(prev => [...prev, ...filesArray])
     }
   }
 
   const removeImage = (index: number) => {
+    const imageToRemove = productImages[index]
+    
+    // Check if this is an existing image or a new image
+    if (imageToRemove.startsWith('blob:')) {
+      // This is a new image (blob URL), remove from newImageFiles
+      const blobIndex = productImages.slice(0, index).filter(img => img.startsWith('blob:')).length
+      setNewImageFiles(prev => prev.filter((_, i) => i !== blobIndex))
+    } else {
+      // This is an existing image, add its ID to deletion list
+      const existingImage = existingImages.find(img => img.url === imageToRemove)
+      if (existingImage) {
+        setImagesToDelete(prev => [...prev, existingImage.id])
+      }
+    }
+    
+    // Remove from display array
     setProductImages(prev => prev.filter((_, i) => i !== index))
-    setImageFiles(prev => prev.filter((_, i) => i !== index))
+    
+    // Update primary image index if needed
+    if (index === primaryImageIndex) {
+      // If we're removing the primary image, set the first remaining image as primary
+      setPrimaryImageIndex(0)
+    } else if (index < primaryImageIndex) {
+      // If we're removing an image before the primary image, adjust the index
+      setPrimaryImageIndex(prev => prev - 1)
+    }
+    // If index > primaryImageIndex, no need to change primaryImageIndex
   }
 
   const addVariant = () => {
@@ -571,7 +695,7 @@ function ProductForm({
   }
 
   const handleFormSubmit = (data: ProductForm) => {
-    // Send complete product data including variants for proper creation
+    // Send complete product data including variants for proper creation/update
     const formData: ProductForm = {
       name: data.name,
       slug: data.slug || data.name.toLowerCase().replace(/\s+/g, '-'),
@@ -580,16 +704,47 @@ function ProductForm({
       description: data.description || undefined,
       status: data.status || 'ACTIVE',
       variants: data.variants || [], // Include variants data
-      images: imageFiles.map((file, index) => ({
-        id: 0,
-        productId: 0,
-        url: URL.createObjectURL(file), // Use blob URL temporarily for identification
-        isPrimary: index === 0,
-        sortOrder: index,
-        createdAt: new Date().toISOString()
-      }))
+      images: buildImagesData(),
+      newImageFiles: newImageFiles, // Send new files separately
+      imagesToDelete: imagesToDelete // Send IDs of images to delete
     }
     onSubmit(formData)
+  }
+
+  const buildImagesData = () => {
+    const images: ProductImage[] = []
+    
+    // Add existing images that are still in the display (not deleted)
+    existingImages.forEach((img) => {
+      // Only include if it's still in productImages and not marked for deletion
+      if (productImages.includes(img.url) && !imagesToDelete.includes(img.id)) {
+        const currentIndex = productImages.indexOf(img.url)
+        images.push({
+          id: img.id,
+          productId: img.productId,
+          url: img.url,
+          isPrimary: currentIndex === primaryImageIndex,
+          sortOrder: currentIndex,
+          createdAt: img.createdAt
+        })
+      }
+    })
+    
+    // Add new images (blob URLs) - these will be handled by the upload process
+    const blobUrls = productImages.filter(url => url.startsWith('blob:'))
+    blobUrls.forEach((imageUrl) => {
+      const actualIndex = productImages.indexOf(imageUrl)
+      images.push({
+        id: 0, // New images have ID 0
+        productId: product?.id || 0,
+        url: imageUrl, // This will be replaced after upload
+        isPrimary: actualIndex === primaryImageIndex,
+        sortOrder: actualIndex,
+        createdAt: new Date().toISOString()
+      })
+    })
+    
+    return images
   }
 
   return (
@@ -678,6 +833,7 @@ function ProductForm({
             {...register('brandId')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
             disabled={brandsLoading}
+            defaultValue={product?.brandId || ''}
           >
             <option value="">
               {brandsLoading ? 'Đang tải thương hiệu...' : 'Chọn thương hiệu (tùy chọn)'}
@@ -731,24 +887,13 @@ function ProductForm({
               <option value="DRAFT">Bản nháp</option>
             </select>
           </div>
-
-          <div className="flex items-center">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="mr-2"
-                // isFeatured không có trong ProductForm mới, tạm thời comment out
-                // {...register('isFeatured')}
-              />
-              Sản phẩm nổi bật (chưa hỗ trợ)
-            </label>
-          </div>
         </div>
       </div>
 
       {/* Product Images */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-gray-900">Hình ảnh sản phẩm</h3>
+        <p className="text-sm text-gray-600">Ảnh đầu tiên sẽ được đặt làm ảnh chính. Bạn có thể thay đổi bằng cách bấm nút &quot;Đặt làm ảnh chính&quot;.</p>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {productImages.map((image, index) => (
@@ -756,15 +901,41 @@ function ProductForm({
               <img
                 src={image}
                 alt={`Product image ${index + 1}`}
-                className="w-full h-32 object-cover rounded-lg border"
+                className={`w-full h-32 object-cover rounded-lg border-2 ${
+                  index === primaryImageIndex 
+                    ? 'border-blue-500 ring-2 ring-blue-200' 
+                    : 'border-gray-200'
+                }`}
               />
-              <button
-                type="button"
-                onClick={() => removeImage(index)}
-                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              
+              {/* Primary image badge */}
+              {index === primaryImageIndex && (
+                <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                  Ảnh chính
+                </div>
+              )}
+              
+              {/* Action buttons */}
+              <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center space-x-2">
+                {index !== primaryImageIndex && (
+                  <button
+                    type="button"
+                    onClick={() => setPrimaryImageIndex(index)}
+                    className="bg-blue-500 text-white text-xs px-2 py-1 rounded hover:bg-blue-600"
+                    title="Đặt làm ảnh chính"
+                  >
+                    Đặt làm ảnh chính
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeImage(index)}
+                  className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  title="Xóa ảnh"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           ))}
           

@@ -66,6 +66,13 @@ public class ProductRepository : IProductRepository
             .FirstOrDefaultAsync(ct);
     }
 
+    public bool GetByNameAsync(string name, bool isAdmin = false, CancellationToken ct = default)
+    {
+        var p = _context.Products.Where(x => x.Name == name);
+        if(p.Count() == 0) return false;
+        return true;
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken ct = default) =>
         _context.SaveChangesAsync(ct);
 
@@ -142,7 +149,7 @@ public class ProductRepository : IProductRepository
         return new PagedResult<ProductDto>(productDtos, total, page, pageSize);
     }
 
-    public async Task<string> UploadImageAsync(long productId, IFormFile file, CancellationToken ct = default)
+    public async Task<string> UploadImageAsync(long productId, IFormFile file, bool isPrimary = false, CancellationToken ct = default)
     {
         var product = await _context.Products
             .Include(p => p.Images)
@@ -154,18 +161,81 @@ public class ProductRepository : IProductRepository
         // Upload lên Cloudinary
         var imageUrl = await _cloudinary.UploadImageAsync(file, "product-images");
 
+        // Nếu người dùng chọn đặt làm primary, bỏ primary của các ảnh khác
+        if (isPrimary)
+        {
+            foreach (var existingImage in product.Images)
+            {
+                existingImage.IsPrimary = false;
+            }
+        }
+
         // Lưu vào DB
         var image = new ProductImage
         {
             ProductId = productId,
             Url = imageUrl,
-            IsPrimary = !product.Images.Any()
+            IsPrimary = isPrimary,
+            SortOrder = product.Images.Count,
+            CreatedAt = DateTimeOffset.UtcNow
         };
 
         product.Images.Add(image);
         await _context.SaveChangesAsync(ct);
 
         return imageUrl;
+    }
+
+    public async Task<List<string>> UploadImagesAsync(long productId, IFormFileCollection files, List<int> sortOrders, List<bool> isPrimaryFlags, CancellationToken ct = default)
+    {
+        var product = await _context.Products
+            .Include(p => p.Images)
+            .FirstOrDefaultAsync(p => p.Id == productId, ct);
+        
+        if (product == null) 
+            throw new KeyNotFoundException("Product not found");
+
+        var uploadedUrls = new List<string>();
+        var existingImageCount = product.Images.Count;
+        var hasPrimaryInNewImages = isPrimaryFlags.Any(x => x); // Kiểm tra xem có ảnh nào được chọn làm primary không
+
+        // Nếu có ảnh mới được chọn làm primary, bỏ primary của tất cả ảnh cũ
+        if (hasPrimaryInNewImages)
+        {
+            foreach (var existingImage in product.Images)
+            {
+                existingImage.IsPrimary = false;
+            }
+        }
+
+        for (int i = 0; i < files.Count; i++)
+        {
+            var file = files[i];
+            if (file == null || file.Length == 0) continue;
+
+            // Upload lên Cloudinary
+            var imageUrl = await _cloudinary.UploadImageAsync(file, "product-images");
+            uploadedUrls.Add(imageUrl);
+
+            // Lấy thông tin từ parameters
+            var sortOrder = i < sortOrders.Count ? sortOrders[i] : existingImageCount + i;
+            var isPrimary = i < isPrimaryFlags.Count ? isPrimaryFlags[i] : false; // Chỉ đặt primary nếu người dùng chọn
+
+            // Tạo ProductImage entity
+            var image = new ProductImage
+            {
+                ProductId = productId,
+                Url = imageUrl,
+                IsPrimary = isPrimary,
+                SortOrder = sortOrder,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            product.Images.Add(image);
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return uploadedUrls;
     }
 
     public async Task<bool> RemoveImageAsync(long productId, string imageUrl, CancellationToken ct = default)
@@ -183,6 +253,32 @@ public class ProductRepository : IProductRepository
         _context.Set<ProductImage>().Remove(image);
         await _context.SaveChangesAsync(ct);
 
+        return true;
+    }
+
+    public async Task<bool> SetPrimaryImageAsync(long productId, string imageUrl, CancellationToken ct = default)
+    {
+        var product = await _context.Products
+            .Include(p => p.Images)
+            .FirstOrDefaultAsync(p => p.Id == productId, ct);
+
+        if (product == null)
+            return false;
+
+        var targetImage = product.Images.FirstOrDefault(i => i.Url == imageUrl);
+        if (targetImage == null)
+            return false;
+
+        // Reset all images to non-primary
+        foreach (var image in product.Images)
+        {
+            image.IsPrimary = false;
+        }
+
+        // Set target image as primary
+        targetImage.IsPrimary = true;
+
+        await _context.SaveChangesAsync(ct);
         return true;
     }
 }
