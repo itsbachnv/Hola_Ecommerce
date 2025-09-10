@@ -54,6 +54,18 @@ public class ProductRepository : IProductRepository
     public Task<bool> SlugExistsAsync(string slug, long? excludeId = null, CancellationToken ct = default) =>
         _context.Products.AnyAsync(p => p.Slug == slug && (excludeId == null || p.Id != excludeId), ct);
 
+    public Task<ProductDto?> GetBySlugAsync(string slug, bool isAdmin = false, CancellationToken ct = default)
+    {
+        return _context.Products
+            .Include(p => p.Category)
+            .Include(p => p.Brand)
+            .Include(p => p.Variants)
+            .Include(p => p.Images)
+            .Where(p => p.Slug == slug)
+            .Select(p => p.ToDto(isAdmin))
+            .FirstOrDefaultAsync(ct);
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken ct = default) =>
         _context.SaveChangesAsync(ct);
 

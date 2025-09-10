@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import Button from '@/components/ui/Button'
 import { useCategories } from '@/hooks/useCategories'
-import { useProducts } from '@/hooks/useProducts'
+import { useProducts, createProduct, updateProduct, deleteProduct } from '@/hooks/useProducts'
+import { useBrands } from '@/hooks/useBrands'
 import { 
   Plus, 
   Search, 
@@ -26,23 +27,8 @@ import {
   ImagePlus
 } from 'lucide-react'
 
-export type ProductManagementProps = {
-  products: Product[]
-  categories: Category[]
-  onCreateProduct: (productData: ProductForm) => Promise<void>
-  onUpdateProduct: (id: string, productData: ProductForm) => Promise<void>
-  onDeleteProduct: (id: string) => Promise<void>
-  onToggleStatus: (id: string, isActive: boolean) => Promise<void>
-  isLoading: boolean
-}
 
-
-export default function ProductManagement({
-  onCreateProduct,
-  onUpdateProduct,
-  onDeleteProduct,
-  onToggleStatus
-}: ProductManagementProps) {
+export default function ProductManagement() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedParentCategory, setSelectedParentCategory] = useState('')
@@ -61,7 +47,55 @@ export default function ProductManagement({
     pageSize: 50
   }), [searchQuery, selectedCategory])
   
-  const { products, pagination, loading: productsLoading, error: productsError } = useProducts(productFilters)
+  const { products, pagination, loading: productsLoading, error: productsError, refetch } = useProducts(productFilters)
+
+  // Product management functions
+  const handleCreateProduct = async (productData: ProductForm) => {
+    try {
+      await createProduct(productData)
+      setIsCreateModalOpen(false)
+      refetch() // Refresh the products list
+    } catch (error) {
+
+    }
+  }
+
+  const handleUpdateProduct = async (id: string, productData: ProductForm) => {
+    try {
+      await updateProduct(id, productData)
+      setIsEditModalOpen(false)
+      setSelectedProduct(null)
+      refetch() // Refresh the products list
+    } catch (error) {
+    }
+  }
+
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      await deleteProduct(id)
+      refetch() // Refresh the products list
+    } catch (error) {
+    }
+  }
+
+  const handleToggleStatus = async (id: string, isActive: boolean) => {
+    try {
+      // For now, we'll use update to toggle status
+      const product = products.find(p => p.id === Number(id))
+      if (product) {
+        await updateProduct(id, {
+          name: product.name,
+          slug: product.slug,
+          description: product.description,
+          categoryId: product.categoryId,
+          brandId: product.brandId,
+          status: isActive ? 'ACTIVE' : 'INACTIVE'
+        })
+        refetch() // Refresh the products list
+      }
+    } catch (error) {
+    }
+  }
 
   // Separate parent and child categories
   const parentCategories = categories.filter(cat => cat.parentId === null || cat.parentId === undefined)
@@ -76,9 +110,9 @@ export default function ProductManagement({
 
   const stats = {
     total: products.length,
-    active: products.filter(p => p.isActive).length,
-    outOfStock: products.filter(p => p.variants && Array.isArray(p.variants) && p.variants.every(v => v.stock === 0)).length,
-    lowStock: products.filter(p => p.variants && Array.isArray(p.variants) && p.variants.some(v => v.stock > 0 && v.stock <= 10)).length
+    active: products.filter(p => p.status === 'ACTIVE').length,
+    outOfStock: products.filter(p => p.variants && Array.isArray(p.variants) && p.variants.every(v => v.stockQty === 0)).length,
+    lowStock: products.filter(p => p.variants && Array.isArray(p.variants) && p.variants.some(v => v.stockQty > 0 && v.stockQty <= 10)).length
   }
 
   return (
@@ -97,8 +131,7 @@ export default function ProductManagement({
             </DialogHeader>
             <ProductForm
               onSubmit={(data) => {
-                onCreateProduct(data)
-                setIsCreateModalOpen(false)
+                handleCreateProduct(data)
               }}
               onCancel={() => setIsCreateModalOpen(false)}
               categories={categories}
@@ -213,8 +246,8 @@ export default function ProductManagement({
                       setSelectedProduct(product)
                       setIsEditModalOpen(true)
                     }}
-                    onDelete={() => onDeleteProduct(String(product.id))}
-                    onToggleStatus={(status) => onToggleStatus(String(product.id), status)}
+                    onDelete={() => handleDeleteProduct(String(product.id))}
+                    onToggleStatus={(status) => handleToggleStatus(String(product.id), status)}
                   />
                 ))}
               </tbody>
@@ -246,9 +279,7 @@ export default function ProductManagement({
             <ProductForm
               product={selectedProduct}
               onSubmit={(data) => {
-                onUpdateProduct(String(selectedProduct.id), data)
-                setIsEditModalOpen(false)
-                setSelectedProduct(null)
+                handleUpdateProduct(String(selectedProduct.id), data)
               }}
               onCancel={() => {
                 setIsEditModalOpen(false)
@@ -282,7 +313,7 @@ function ProductRow({
   const variants = product.variants && Array.isArray(product.variants) ? product.variants : []
   const minPrice = variants.length > 0 ? Math.min(...variants.map(v => v.price)) : 0
   const maxPrice = variants.length > 0 ? Math.max(...variants.map(v => v.price)) : 0
-  const totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0)
+  const totalStock = variants.reduce((sum, v) => sum + (v.stockQty || 0), 0)
   const isLowStock = totalStock > 0 && totalStock <= 10
   const isOutOfStock = totalStock === 0
 
@@ -309,7 +340,7 @@ function ProductRow({
           </div>
           <div>
             <p className="font-medium text-gray-900">{product.name}</p>
-            <p className="text-sm text-gray-600 line-clamp-1">{product.shortDescription}</p>
+            <p className="text-sm text-gray-600 line-clamp-1">{product.description}</p>
           </div>
         </div>
       </td>
@@ -427,6 +458,10 @@ function ProductForm({
   const [selectedParentCategory, setSelectedParentCategory] = useState('')
   const [selectedChildCategory, setSelectedChildCategory] = useState('')
   const [productImages, setProductImages] = useState<string[]>([])
+  const [imageFiles, setImageFiles] = useState<File[]>([]) // Store actual File objects
+
+  // Fetch brands from API
+  const { brands, loading: brandsLoading, error: brandsError } = useBrands()
 
   // Separate parent and child categories
   const parentCategories = categories.filter(cat => cat.parentId === null || cat.parentId === undefined)
@@ -440,41 +475,38 @@ function ProductForm({
   const { register, handleSubmit, formState: { errors }, setValue, control } = useForm<ProductForm>({
     defaultValues: product ? {
       name: product.name,
+      slug: product.slug,
       description: product.description,
-      shortDescription: product.shortDescription,
       categoryId: product.categoryId,
-      brandId: product.brandId !== undefined && product.brandId !== null ? String(product.brandId) : '',
-      tags: product.tags || [],
+      brandId: product.brandId,
+      attributes: product.attributes || {},
       status: product.status,
-      isFeatured: product.isFeatured,
-      variants: product.variants.map(v => ({
+      variants: product.variants?.map(v => ({
+        id: v.id,
         sku: v.sku,
         name: v.name,
         price: v.price,
-        originalPrice: v.originalPrice,
-        stock: v.stock,
-        attributes: v.attributes,
-        images: v.images,
-        isActive: v.isActive
-      }))
+        compareAtPrice: v.compareAtPrice,
+        stockQty: v.stockQty,
+        weightGrams: v.weightGrams,
+        attributes: v.attributes || {}
+      })) || []
     } : {
       name: '',
+      slug: '',
       description: '',
-      shortDescription: '',
-      categoryId: 0,
-      brandId: '',
-      tags: [],
+      categoryId: undefined,
+      brandId: undefined,
+      attributes: {},
       status: 'ACTIVE',
-      isFeatured: false,
       variants: [{
         sku: '',
         name: 'Default',
         price: 0,
-        originalPrice: 0,
-        stock: 0,
-        attributes: {},
-        images: [],
-        isActive: true
+        compareAtPrice: 0,
+        stockQty: 0,
+        weightGrams: 0,
+        attributes: {}
       }]
     }
   })
@@ -487,7 +519,9 @@ function ProductForm({
   // Set initial images and categories when editing
   useEffect(() => {
     if (product) {
-      setProductImages(product.images || [])
+      // Convert ProductImage[] to string[] for display
+      const imageUrls = product.images?.map(img => img.url) || []
+      setProductImages(imageUrls)
       
       if (categories.length > 0) {
         const productCategoryId = String(product.categoryId)
@@ -509,15 +543,19 @@ function ProductForm({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (files) {
-      // In a real app, you'd upload these files to your server/cloud storage
-      // For now, we'll just simulate URLs
-      const newImages = Array.from(files).map(file => URL.createObjectURL(file))
+      const filesArray = Array.from(files)
+      // Create blob URLs for preview
+      const newImages = filesArray.map(file => URL.createObjectURL(file))
+      
+      // Store both blob URLs for preview and file objects for upload
       setProductImages(prev => [...prev, ...newImages])
+      setImageFiles(prev => [...prev, ...filesArray])
     }
   }
 
   const removeImage = (index: number) => {
     setProductImages(prev => prev.filter((_, i) => i !== index))
+    setImageFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   const addVariant = () => {
@@ -525,19 +563,31 @@ function ProductForm({
       sku: '',
       name: '',
       price: 0,
-      originalPrice: 0,
-      stock: 0,
-      attributes: {},
-      images: [],
-      isActive: true
+      compareAtPrice: 0,
+      stockQty: 0,
+      weightGrams: 0,
+      attributes: {}
     })
   }
 
   const handleFormSubmit = (data: ProductForm) => {
-    // Add images to form data
-    const formData = {
-      ...data,
-      images: productImages
+    // Send complete product data including variants for proper creation
+    const formData: ProductForm = {
+      name: data.name,
+      slug: data.slug || data.name.toLowerCase().replace(/\s+/g, '-'),
+      brandId: data.brandId || undefined,
+      categoryId: data.categoryId || undefined,
+      description: data.description || undefined,
+      status: data.status || 'ACTIVE',
+      variants: data.variants || [], // Include variants data
+      images: imageFiles.map((file, index) => ({
+        id: 0,
+        productId: 0,
+        url: URL.createObjectURL(file), // Use blob URL temporarily for identification
+        isPrimary: index === 0,
+        sortOrder: index,
+        createdAt: new Date().toISOString()
+      }))
     }
     onSubmit(formData)
   }
@@ -620,28 +670,39 @@ function ProductForm({
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Thương hiệu
-            </label>
-            <Input
-              {...register('brandId')}
-              placeholder="ID thương hiệu"
-            />
-          </div>
-        </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Mô tả ngắn
+            Thương hiệu
           </label>
-          <Input
-            {...register('shortDescription')}
-            placeholder="Mô tả ngắn gọn về sản phẩm"
-          />
+          <select
+            {...register('brandId')}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            disabled={brandsLoading}
+          >
+            <option value="">
+              {brandsLoading ? 'Đang tải thương hiệu...' : 'Chọn thương hiệu (tùy chọn)'}
+            </option>
+            {brands.map(brand => (
+              <option key={brand.id} value={brand.id}>
+                {brand.name}
+              </option>
+            ))}
+          </select>
+          {brandsError && (
+            <p className="text-red-600 text-sm mt-1">Lỗi tải thương hiệu: {brandsError}</p>
+          )}
         </div>
+      </div>
 
-        <div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Slug
+        </label>
+        <Input
+          {...register('slug')}
+          placeholder="product-slug (tự động tạo từ tên nếu để trống)"
+        />
+      </div>        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Mô tả chi tiết *
           </label>
@@ -675,10 +736,11 @@ function ProductForm({
             <label className="flex items-center">
               <input
                 type="checkbox"
-                {...register('isFeatured')}
                 className="mr-2"
+                // isFeatured không có trong ProductForm mới, tạm thời comment out
+                // {...register('isFeatured')}
               />
-              Sản phẩm nổi bật
+              Sản phẩm nổi bật (chưa hỗ trợ)
             </label>
           </div>
         </div>
@@ -782,11 +844,11 @@ function ProductForm({
                 </label>
                 <Input
                   type="number"
-                  {...register(`variants.${index}.stock`, { required: 'Số lượng tồn kho là bắt buộc', min: 0 })}
+                  {...register(`variants.${index}.stockQty`, { required: 'Số lượng tồn kho là bắt buộc', min: 0 })}
                   placeholder="0"
                 />
-                {errors.variants?.[index]?.stock && (
-                  <p className="text-red-600 text-sm mt-1">{errors.variants[index]?.stock?.message}</p>
+                {errors.variants?.[index]?.stockQty && (
+                  <p className="text-red-600 text-sm mt-1">{errors.variants[index]?.stockQty?.message}</p>
                 )}
               </div>
 
@@ -806,24 +868,24 @@ function ProductForm({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Giá gốc
+                  Giá so sánh (giá gốc)
                 </label>
                 <Input
                   type="number"
-                  {...register(`variants.${index}.originalPrice`, { min: 0 })}
+                  {...register(`variants.${index}.compareAtPrice`, { min: 0 })}
                   placeholder="0"
                 />
               </div>
 
-              <div className="flex items-center">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    {...register(`variants.${index}.isActive`)}
-                    className="mr-2"
-                  />
-                  Biến thể hoạt động
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Trọng lượng (gram)
                 </label>
+                <Input
+                  type="number"
+                  {...register(`variants.${index}.weightGrams`, { min: 0 })}
+                  placeholder="0"
+                />
               </div>
             </div>
           </div>

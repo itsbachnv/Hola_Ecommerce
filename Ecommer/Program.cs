@@ -68,6 +68,7 @@ app.MapProducts();
 app.MapVariantsEndpoints();
 app.MapUsers();
 app.MapCategories();
+app.MapBrands();
 app.MapNotifications();
 app.MapHub<NotificationsHub>("/hubs/notifications");
 

@@ -14,7 +14,7 @@ public record CreateProductCommand(
     long? BrandId,
     long? CategoryId,
     string? Description,
-    string Status = "Active"
+    string Status = "ACTIVE"
 ) : IRequest<ProductDto>;
 
 public class CreateProductHandler : IRequestHandler<CreateProductCommand, ProductDto>
@@ -43,7 +43,7 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Produc
             BrandId = c.BrandId,
             CategoryId = c.CategoryId,
             Description = c.Description,
-            Status = string.IsNullOrWhiteSpace(c.Status) ? "Active" : c.Status
+            Status = string.IsNullOrWhiteSpace(c.Status) ? "ACTIVE" : c.Status
         };
 
         await _repo.AddAsync(entity, ct);
@@ -57,7 +57,7 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Produc
             {
                 var title = "Sản phẩm mới đã được tạo";
                 var message = $"[{entity.Name}] đã được thêm vào catalog.";
-                var mappingUrl = $"/admin/products/{entity.Id}";
+                var mappingUrl = $"/dashboard/products";
 
                 await _mediator.Send(new SendNotificationCommand(
                     Title: title,

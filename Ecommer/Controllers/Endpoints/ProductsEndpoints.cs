@@ -6,6 +6,7 @@ using Ecommer.Application.Products.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 
 public static class ProductsEndpoints
 {
@@ -65,21 +66,54 @@ public static class ProductsEndpoints
             return ok ? TypedResults.NoContent() : TypedResults.NotFound();
         })
         .RequireAuthorization("AdminPolicy");
-
+        
+        // Upload image for product (chỉ Admin)
         group.MapPost("{id:long}/images", async Task<Results<Ok<string>, NotFound, BadRequest>> (
-                HttpContext ctx, long id, IProductRepository repo, CancellationToken ct) =>
-            {
-                var form = await ctx.Request.ReadFormAsync(ct);
-                var file = form.Files.FirstOrDefault();
-                if (file is null) return TypedResults.BadRequest();
-
-                var product = await repo.FindAsync(id, ct);
-                if (product is null) return TypedResults.NotFound();
-
-                var url = await repo.UploadImageAsync(id, file, ct);
-                return TypedResults.Ok(url);
-            })
-            .RequireAuthorization("AdminPolicy");
+                    HttpContext ctx, long id, IProductRepository repo, CancellationToken ct) =>
+                {
+                    // Kiểm tra Content-Type trước
+                    if (!ctx.Request.HasFormContentType)
+                        return TypedResults.BadRequest();
+            
+                    var form = await ctx.Request.ReadFormAsync(ct);
+                    var file = form.Files.FirstOrDefault();
+                    
+                    if (file is null || file.Length == 0)
+                        return TypedResults.BadRequest();
+            
+                    var product = await repo.FindAsync(id, ct);
+                    if (product is null) return TypedResults.NotFound();
+            
+                    var url = await repo.UploadImageAsync(id, file, ct);
+                    return TypedResults.Ok(url);
+                })
+                .RequireAuthorization("AdminPolicy")
+                .DisableAntiforgery()
+                .WithOpenApi(operation =>
+                {
+                    operation.RequestBody = new Microsoft.OpenApi.Models.OpenApiRequestBody
+                    {
+                        Content = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiMediaType>
+                        {
+                            ["multipart/form-data"] = new Microsoft.OpenApi.Models.OpenApiMediaType
+                            {
+                                Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                                {
+                                    Type = "object",
+                                    Properties = new Dictionary<string, Microsoft.OpenApi.Models.OpenApiSchema>
+                                    {
+                                        ["file"] = new Microsoft.OpenApi.Models.OpenApiSchema
+                                        {
+                                            Type = "string",
+                                            Format = "binary"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    return operation;
+                });
         
         return app;
     }

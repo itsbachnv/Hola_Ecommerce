@@ -1,3 +1,4 @@
+using Ecommer.Application.Abstractions.Brands;
 using Ecommer.Application.Abstractions.Categories;
 using Ecommer.Application.Abstractions.Cloudary;
 using Ecommer.Application.Abstractions.Notifications;
@@ -44,6 +45,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
         services.AddScoped<IVariantRepository, VariantRepository>();
+        services.AddScoped<IBrandRepository, BrandRepository>();
         services.AddScoped<IJwtService, JwtService>();
 
         return services;

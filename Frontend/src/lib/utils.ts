@@ -31,7 +31,6 @@ export function formatDate(date: string | Date): string {
       minute: '2-digit',
     }).format(dateObj)
   } catch (error) {
-    console.error('Error formatting date:', date, error)
     return 'Invalid Date'
   }
 }

@@ -24,6 +24,7 @@ public interface IProductRepository
     void Update(Product entity);
     void Remove(Product entity);
     Task<bool> SlugExistsAsync(string slug, long? excludeId = null, CancellationToken ct = default);
+    Task<ProductDto?> GetBySlugAsync(string slug, bool isAdmin = false, CancellationToken ct = default);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
     Task<string> UploadImageAsync(long productId, IFormFile file, CancellationToken ct = default);
     Task<bool> RemoveImageAsync(long productId, string imageUrl, CancellationToken ct = default);

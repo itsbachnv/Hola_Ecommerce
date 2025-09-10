@@ -12,7 +12,7 @@ public static class VariantsEndpoints
 {
     public static void MapVariantsEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/variants").WithTags("Variants");
+        var group = endpoints.MapGroup("/variants").WithTags("Variants");
 
         group.MapGet("/", GetVariants);
         group.MapGet("/{id:long}", GetVariantById);

@@ -51,7 +51,7 @@ public class Product
     public string Slug { get; set; } = default!;
     public string? Description { get; set; }
     public JsonDocument? Attributes { get; set; } // jsonb
-    public string Status { get; set; } = "Active";
+    public string Status { get; set; } = "ACTIVE"; // ACTIVE | DRAFT | ARCHIVED
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
@@ -92,7 +92,7 @@ public class Cart
 {
     public long Id { get; set; }
     public long? UserId { get; set; }
-    public string Status { get; set; } = "Active"; // Active | Converted | Abandoned
+    public string Status { get; set; } = "ACTIVE"; // Active | Converted | Abandoned
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
