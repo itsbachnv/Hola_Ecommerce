@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/stores/auth'
 import { useCategories } from '@/hooks/useCategories'
+import { Category } from '@/types'
 import React from 'react'
 
 type Props = {
@@ -20,6 +21,9 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
   const [categoriesOpen, setCategoriesOpen] = useState(false)
   const lastY = useRef(0)
   const { isAuthenticated, user, logout } = useAuth()
+  
+  // Gọi categories một lần duy nhất ở component cha
+  const { categories, loading: categoriesLoading } = useCategories()
 
   useEffect(() => {
     const onScroll = () => {
@@ -147,7 +151,7 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
               <HeaderLink href="/">TRANG CHỦ</HeaderLink>
               <HeaderLink href="/catalog" mega>
                 Danh Mục
-                <MegaMenu />
+                <MegaMenu categories={categories} loading={categoriesLoading} />
               </HeaderLink>
               <HeaderLink href="/products">Cửa Hàng</HeaderLink>
               <HeaderLink href="/blog">Blog</HeaderLink>
@@ -196,6 +200,8 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
                   categoriesOpen={categoriesOpen}
                   setCategoriesOpen={setCategoriesOpen}
                   onCloseMenu={() => setOpen(false)}
+                  categories={categories}
+                  loading={categoriesLoading}
                 />
                 <MobileLink href='/products' onClick={() => setOpen(false)}>Cửa Hàng</MobileLink>
                 <MobileLink href='/blog' onClick={() => setOpen(false)}>Blog</MobileLink>
@@ -241,14 +247,16 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
 function MobileCategoryMenu({ 
   categoriesOpen, 
   setCategoriesOpen, 
-  onCloseMenu 
+  onCloseMenu,
+  categories,
+  loading 
 }: {
   categoriesOpen: boolean;
   setCategoriesOpen: (open: boolean) => void;
   onCloseMenu: () => void;
+  categories: Category[];
+  loading: boolean;
 }) {
-  const { categories, loading } = useCategories();
-
   // Find all parent categories (parentId == null)
   const parentCategories = categories.filter(cat => cat.parentId === null);
 
@@ -387,8 +395,7 @@ function HeaderLink(
   )
 }
 
-function MegaMenu() {
-  const { categories, loading } = useCategories();
+function MegaMenu({ categories, loading }: { categories: Category[], loading: boolean }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
