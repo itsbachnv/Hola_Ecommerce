@@ -1,15 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Category } from '@/types'
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasFetched = useRef(false)
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
+    if (hasFetched.current) {
+      return; // Chỉ fetch một lần duy nhất
+    }
+    
     try {
       setLoading(true)
       setError(null)
+      hasFetched.current = true
     
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/categories`)
       
@@ -20,31 +26,37 @@ export function useCategories() {
       const result = await response.json()
       
       // Handle different response formats
+      let newCategories: Category[] = [];
       if (Array.isArray(result)) {
-        setCategories(result)
+        newCategories = result;
       } else if (result && result.data && Array.isArray(result.data)) {
-        setCategories(result.data)
+        newCategories = result.data;
       } else if (result && result.success && result.data && Array.isArray(result.data)) {
-        setCategories(result.data)
-      } else {
-        setCategories([])
+        newCategories = result.data;
       }
+      
+      setCategories(newCategories)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch categories')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch categories';
+      setError(errorMessage)
       setCategories([])
+      hasFetched.current = false // Cho phép retry nếu có lỗi
     } finally {
       setLoading(false)
     }
-  }
+  }, []);
 
   useEffect(() => {
-    fetchCategories()
-  }, [])
+    fetchCategories();
+  }, [fetchCategories]);
 
   return {
     categories,
     loading,
     error,
-    refetch: fetchCategories
+    refetch: () => {
+      hasFetched.current = false
+      fetchCategories()
+    }
   }
 }

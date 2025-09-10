@@ -1,64 +1,42 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Autoplay, A11y } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import Image from "next/image";
-
-interface Product {
-  id: number;
-  title: string;
-  image: string;
-  price: number;
-  category?: string;
-  rating?: { rate: number; count: number };
-}
+import { useProducts } from "@/hooks/useProducts";
+import { Product } from "@/types";
 
 export default function FeaturedProducts() {
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  
+  // Memoize filters to prevent infinite API calls
+  const productFilters = useMemo(() => ({
+    pageSize: 12, // Limit to show in featured section
+    status: 'ACTIVE' // Only show active products
+  }), []);
+  
+  // Use the real products API with filters for featured products
+  const { products, loading, error } = useProducts(productFilters);
 
+  // Prefetch product detail pages
   useEffect(() => {
-    abortRef.current = new AbortController();
-    const fetchDemoProducts = async () => {
-      try {
-        const res = await fetch("https://fakestoreapi.com/products", {
-          signal: abortRef.current?.signal,
-          // cache: "no-store", // uncomment nếu bạn muốn luôn gọi mới
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: Product[] = await res.json();
-        setProducts(data);
-      } catch (error: any) {
-        if (error?.name !== "AbortError") {
-          setErr("Không tải được danh sách sản phẩm. Vui lòng thử lại.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDemoProducts();
-    return () => abortRef.current?.abort();
-  }, []);
-
-  // Prefetch trang chi tiết khi slider xuất hiện
-  useEffect(() => {
-    products.slice(0, 6).forEach((p) => {
-      router.prefetch?.(`/products/${p.id}`);
+    products.slice(0, 6).forEach((product: Product) => {
+      router.prefetch?.(`/products/${product.slug || product.id}`);
     });
   }, [products, router]);
 
-  const handleProductClick = (id: number) => {
-    router.push(`/products/${id}`);
+  const handleProductClick = (product: Product) => {
+    // Use slug for SEO-friendly URLs, fallback to ID
+    const url = product.slug ? `/products/${product.slug}` : `/products/${product.id}`;
+    router.push(url);
   };
 
-  const slides = useMemo(() => products, [products]);
+  // Get the first 8 products for featured section
+  const featuredProducts = useMemo(() => products.slice(0, 8), [products]);
 
   return (
     <section className="bg-gray-50 py-16 px-4 md:px-16 lg:px-24">
@@ -85,12 +63,12 @@ export default function FeaturedProducts() {
         )}
 
         {/* Error state */}
-        {!loading && err && (
-          <div className="text-center text-rose-600">{err}</div>
+        {!loading && error && (
+          <div className="text-center text-rose-600">{error}</div>
         )}
 
         {/* Slider */}
-        {!loading && !err && slides.length > 0 && (
+        {!loading && !error && featuredProducts.length > 0 && (
           <Swiper
             modules={[Navigation, Autoplay, A11y]}
             aria-label="Featured products carousel"
@@ -105,22 +83,22 @@ export default function FeaturedProducts() {
               1024: { slidesPerView: 4 },
             }}
           >
-            {slides.map((product) => (
+            {featuredProducts.map((product: Product) => (
               <SwiperSlide key={product.id}>
                 <article
-                  onClick={() => handleProductClick(product.id)}
+                  onClick={() => handleProductClick(product)}
                   className="group cursor-pointer h-full rounded-xl bg-white p-4 ring-1 ring-gray-200 transition hover:shadow-lg flex flex-col"
                 >
                   <div className="relative mb-4 h-60 w-full overflow-hidden rounded">
                     {/* badge category (nếu có) */}
-                    {product.category && (
+                    {product.categoryName && (
                       <span className="absolute left-2 top-2 z-10 rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest ring-1 ring-gray-200">
-                        {product.category}
+                        {product.categoryName}
                       </span>
                     )}
                     <Image
-                      src={product.image}
-                      alt={product.title}
+                      src={product.primaryImageUrl || '/images/placeholder-product.jpg'}
+                      alt={product.name}
                       fill
                       className="object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
                       sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 100vw"
@@ -129,28 +107,37 @@ export default function FeaturedProducts() {
 
                   <div className="flex flex-col gap-3 flex-1">
                     <h3 className="line-clamp-2 text-left text-base font-semibold text-gray-800 min-h-[3.25rem]">
-                      {product.title}
+                      {product.name}
                     </h3>
 
-                    {/* rating (nếu có) */}
-                    {product.rating && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Stars value={product.rating.rate} />
-                        <span>({product.rating.count})</span>
+                    {/* Brand name if available */}
+                    {product.brandName && (
+                      <div className="text-sm text-gray-500">
+                        {product.brandName}
                       </div>
                     )}
 
                     <div className="mt-auto flex items-center justify-between">
-                      <p className="text-gray-900 font-semibold">
-                        ${product.price.toFixed(2)}
-                      </p>
+                      <div className="flex flex-col">
+                        <p className="text-gray-900 font-semibold">
+                          ${product.minPrice?.toFixed(2) || '0.00'}
+                          {product.maxPrice && product.maxPrice !== product.minPrice && (
+                            <span className="text-gray-500"> - ${product.maxPrice.toFixed(2)}</span>
+                          )}
+                        </p>
+                        {product.compareAtPrice && (
+                          <p className="text-sm text-gray-400 line-through">
+                            ${product.compareAtPrice.toFixed(2)}
+                          </p>
+                        )}
+                      </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           // TODO: Thêm vào giỏ
                         }}
                         className="rounded-full border border-gray-900 px-4 py-2 text-sm font-semibold transition hover:bg-gray-900 hover:text-white"
-                        aria-label={`Add ${product.title} to cart`}
+                        aria-label={`Add ${product.name} to cart`}
                       >
                         Thêm vào giỏ
                       </button>
@@ -163,45 +150,5 @@ export default function FeaturedProducts() {
         )}
       </div>
     </section>
-  );
-}
-
-/* Helpers */
-function Stars({ value = 0 }: { value?: number }) {
-  // normalize 0..5
-  const v = Math.max(0, Math.min(5, value));
-  return (
-    <div className="flex">
-      {Array.from({ length: 5 }).map((_, i) => {
-        const fill = i + 1 <= Math.floor(v);
-        const half = !fill && i + 0.5 < v;
-        return (
-          <svg
-            key={i}
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            className="mr-0.5"
-            aria-hidden="true"
-          >
-            <defs>
-              <linearGradient id={`half-${i}`}>
-                <stop offset="50%" stopColor="currentColor" />
-                <stop offset="50%" stopColor="transparent" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M12 17.3l-6.16 3.64 1.64-6.98L2 8.9l7.08-.6L12 1.8l2.92 6.5 7.08.6-5.48 5.06 1.64 6.98z"
-              fill={
-                fill ? "currentColor" : half ? `url(#half-${i})` : "none"
-              }
-              stroke="currentColor"
-              className="text-amber-500"
-              strokeWidth="1.5"
-            />
-          </svg>
-        );
-      })}
-    </div>
   );
 }

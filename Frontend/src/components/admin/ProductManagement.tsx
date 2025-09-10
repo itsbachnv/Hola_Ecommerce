@@ -7,6 +7,7 @@ import type { ProductForm } from '@/types'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import VNDInput from '@/components/ui/VNDInput'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import Button from '@/components/ui/Button'
 import { useCategories } from '@/hooks/useCategories'
@@ -1027,23 +1028,19 @@ function ProductForm({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Giá bán *
                 </label>
-                <Input
-                  type="number"
-                  {...register(`variants.${index}.price`, { required: 'Giá bán là bắt buộc', min: 0 })}
+                <VNDInput
+                  register={register(`variants.${index}.price`, { required: 'Giá bán là bắt buộc', min: 0 })}
                   placeholder="0"
+                  error={errors.variants?.[index]?.price?.message}
                 />
-                {errors.variants?.[index]?.price && (
-                  <p className="text-red-600 text-sm mt-1">{errors.variants[index]?.price?.message}</p>
-                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Giá so sánh (giá gốc)
                 </label>
-                <Input
-                  type="number"
-                  {...register(`variants.${index}.compareAtPrice`, { min: 0 })}
+                <VNDInput
+                  register={register(`variants.${index}.compareAtPrice`, { min: 0 })}
                   placeholder="0"
                 />
               </div>

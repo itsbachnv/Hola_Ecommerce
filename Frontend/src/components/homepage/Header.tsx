@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/stores/auth'
+import { useCategories } from '@/hooks/useCategories'
 import React from 'react'
 
 type Props = {
@@ -16,6 +17,7 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [show, setShow] = useState(true)
+  const [categoriesOpen, setCategoriesOpen] = useState(false)
   const lastY = useRef(0)
   const { isAuthenticated, user, logout } = useAuth()
 
@@ -106,7 +108,7 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
                     <Link 
                       href={user?.role === 'Admin' || user?.role === 'Staff' ? '/dashboard' : '/profile'} 
                       className='grid h-10 w-10 place-items-center rounded-xl ring-1 ring-black/10 hover:bg-black/5'
-                      title={`Xin chào ${user?.name}`}
+                      title={`Xin chào ${user?.fullName || user?.email}`}
                     >
                       <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
                         <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' />
@@ -190,7 +192,11 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
               </div>
               <div className='px-4 py-4 space-y-3 text-[13px] font-semibold uppercase tracking-[0.25em] text-gray-900'>
                 <MobileLink href='/' onClick={() => setOpen(false)}>TRANG CHỦ</MobileLink>
-                <MobileLink href='/catalog' onClick={() => setOpen(false)}>Danh Mục</MobileLink>
+                <MobileCategoryMenu 
+                  categoriesOpen={categoriesOpen}
+                  setCategoriesOpen={setCategoriesOpen}
+                  onCloseMenu={() => setOpen(false)}
+                />
                 <MobileLink href='/products' onClick={() => setOpen(false)}>Cửa Hàng</MobileLink>
                 <MobileLink href='/blog' onClick={() => setOpen(false)}>Blog</MobileLink>
                 <MobileLink href='/about' onClick={() => setOpen(false)}>Về Chúng Tôi</MobileLink>
@@ -200,7 +206,27 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
                 <MobileLink href='/contact' onClick={() => setOpen(false)}>Liên Hệ</MobileLink>
                 <div className='my-2 border-t' />
                 <MobileLink href='/cart' onClick={() => setOpen(false)}>Giỏ Hàng ({cartCount})</MobileLink>
-                <MobileLink href='/login' onClick={() => setOpen(false)}>Đăng Nhập</MobileLink>
+                {isAuthenticated ? (
+                  <div className="space-y-2">
+                    <MobileLink 
+                      href={user?.role === 'Admin' || user?.role === 'Staff' ? '/dashboard' : '/profile'} 
+                      onClick={() => setOpen(false)}
+                    >
+                      {user?.fullName || user?.email}
+                    </MobileLink>
+                    <button 
+                      onClick={() => {
+                        logout();
+                        setOpen(false);
+                      }}
+                      className="block w-full text-left rounded-lg px-2 py-2 hover:bg-red-50 text-red-600 transition"
+                    >
+                      Đăng Xuất
+                    </button>
+                  </div>
+                ) : (
+                  <MobileLink href='/login' onClick={() => setOpen(false)}>Đăng Nhập</MobileLink>
+                )}
               </div>
             </motion.aside>
           </>
@@ -211,6 +237,94 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
 }
 
 /* ===== Helpers ===== */
+
+function MobileCategoryMenu({ 
+  categoriesOpen, 
+  setCategoriesOpen, 
+  onCloseMenu 
+}: {
+  categoriesOpen: boolean;
+  setCategoriesOpen: (open: boolean) => void;
+  onCloseMenu: () => void;
+}) {
+  const { categories, loading } = useCategories();
+
+  // Find all parent categories (parentId == null)
+  const parentCategories = categories.filter(cat => cat.parentId === null);
+
+  return (
+    <div>
+      <button
+        onClick={() => setCategoriesOpen(!categoriesOpen)}
+        className="flex w-full items-center justify-between rounded-lg px-2 py-2 hover:bg-black/5 transition text-[13px] font-semibold uppercase tracking-[0.25em] text-gray-900"
+      >
+        <span>Danh Mục</span>
+        <svg 
+          width="16" 
+          height="16" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="2"
+          className={`transform transition-transform ${categoriesOpen ? 'rotate-180' : ''}`}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      
+      <AnimatePresence>
+        {categoriesOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pl-4 py-2 space-y-2">
+              {loading ? (
+                <div className="text-gray-400 text-xs">Đang tải...</div>
+              ) : parentCategories.length > 0 ? (
+                <>
+                  <Link 
+                    href="/catalog" 
+                    onClick={onCloseMenu}
+                    className="block text-xs text-gray-600 hover:text-gray-900 py-1"
+                  >
+                    Tất cả danh mục
+                  </Link>
+                  {parentCategories.map((parent) => (
+                    <div key={parent.id}>
+                      <Link 
+                        href={`/catalog?cat=${parent.slug}`} 
+                        onClick={onCloseMenu}
+                        className="block text-xs font-medium text-gray-800 hover:text-black py-1"
+                      >
+                        {parent.name}
+                      </Link>
+                      {categories.filter(cat => cat.parentId === parent.id).map((child) => (
+                        <Link 
+                          key={child.id}
+                          href={`/catalog?cat=${child.slug}`} 
+                          onClick={onCloseMenu}
+                          className="block text-xs text-gray-600 hover:text-gray-900 pl-3 py-1"
+                        >
+                          {child.name}
+                        </Link>
+                      ))}
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="text-gray-400 text-xs">Không có dữ liệu</div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 function MobileLink({
   href,
@@ -274,40 +388,18 @@ function HeaderLink(
 }
 
 function MegaMenu() {
-  type Category = {
-    id: number;
-    name: string;
-    slug: string;
-    parentId: number | null;
-    parentName: string | null;
-  };
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { categories, loading } = useCategories();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/categories`)
-      .then(res => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setCategories(data);
-        } else {
-          setCategories([]);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
   }, []);
 
   if (!mounted) {
     // Render placeholder giống server để tránh hydration mismatch
     return (
       <div className="w-[720px] md:w-[760px] grid grid-cols-3 gap-6">
-        {["Sneakers", "Apparel"].map((parent, idx) => (
+        {["Sneakers", "Apparel"].map((parent) => (
           <div key={parent}>
             <h5 className="mb-2 text-xs font-bold tracking-widest text-gray-500 uppercase">{parent}</h5>
             <ul className="space-y-1.5 text-sm">

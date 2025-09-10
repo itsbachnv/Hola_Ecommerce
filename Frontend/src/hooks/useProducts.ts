@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Product, ProductForm, ProductVariant } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import toast from 'react-hot-toast'
@@ -23,14 +23,12 @@ interface ProductsResponse {
 // Helper function to get authenticated headers
 function getAuthHeaders(): HeadersInit {
   const token = useAuthStore.getState().token
-  console.log('🔑 Token from auth store:', token ? `${token.substring(0, 20)}...` : 'No token')
   
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` })
   }
   
-  console.log('📨 Request headers:', headers)
   return headers
 }
 
@@ -44,6 +42,7 @@ export function useProducts(filters: ProductFilters = {}) {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasInitialFetch = useRef(false)
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -130,7 +129,29 @@ export function useProducts(filters: ProductFilters = {}) {
             totalPages: result.totalPages || 1
           })
         }
-        // Case 6: Try to find any array in the object
+        // Case 6: Object with numeric keys (API returns {0: product1, 1: product2})
+        else if (Object.keys(result).every(key => !isNaN(Number(key)))) {
+          const productsArray = Object.values(result) as Product[]
+          setProducts(productsArray)
+          setPagination({
+            page: 1,
+            pageSize: productsArray.length,
+            total: productsArray.length,
+            totalPages: 1
+          })
+        }
+        // Case 6: Handle numeric keys {0: product, 1: product, ...}
+        else if (Object.keys(result).every(key => !isNaN(Number(key)))) {
+          const products = Object.values(result) as Product[]
+          setProducts(products)
+          setPagination({
+            page: 1,
+            pageSize: products.length,
+            total: products.length,
+            totalPages: 1
+          })
+        }
+        // Case 7: Try to find any array in the object
         else {
           const arrayKey = Object.keys(result).find(key => Array.isArray(result[key]))
           if (arrayKey) {
@@ -163,10 +184,18 @@ export function useProducts(filters: ProductFilters = {}) {
     }
   }, [filters])
 
-  // Add debounce to prevent spam API calls
+  // Add debounce to prevent spam API calls  
   useEffect(() => {
-    // Only fetch if we have meaningful filters or it's initial load
-    const shouldFetch = !filters.search || filters.search.length >= 2 || filters.categoryId || products.length === 0
+    // Reset hasInitialFetch when filters change significantly
+    if (filters.categoryId || filters.brandId) {
+      hasInitialFetch.current = false
+    }
+
+    // Only fetch if we have meaningful filters or haven't fetched yet
+    const shouldFetch = !hasInitialFetch.current || 
+                       filters.categoryId || 
+                       filters.brandId || 
+                       (filters.search && filters.search.length >= 2)
     
     if (!shouldFetch) {
       return
@@ -174,10 +203,11 @@ export function useProducts(filters: ProductFilters = {}) {
 
     const timeoutId = setTimeout(() => {
       fetchProducts()
-    }, filters.search && filters.search.length > 0 ? 500 : 100) // Longer delay for search, shorter for other filters
+      hasInitialFetch.current = true
+    }, filters.search && filters.search.length > 0 ? 500 : 100)
 
     return () => clearTimeout(timeoutId)
-  }, [fetchProducts, filters.search, filters.categoryId, products.length])
+  }, [fetchProducts, filters.search, filters.categoryId, filters.brandId])
 
   return {
     products,
@@ -408,7 +438,6 @@ export async function updateProduct(id: string, productData: ProductForm): Promi
         
         await uploadProductImages(updatedProduct.id, productData.newImageFiles, newImagesPrimaryIndex)
       } catch (error) {
-        console.warn('Failed to upload new images:', error)
       }
     }
     toast.success('Cập nhật sản phẩm thành công')
@@ -601,7 +630,6 @@ export async function uploadProductImages(productId: number, files: File[], prim
     return result.urls || result // Should return array of image URLs
   } catch (error) {
     // Fallback to individual uploads if batch upload fails
-    console.warn('Batch upload failed, falling back to individual uploads:', error)
     const uploadPromises = files.map((file, index) => 
       uploadProductImage(productId, file, index === primaryIndex)
     )
