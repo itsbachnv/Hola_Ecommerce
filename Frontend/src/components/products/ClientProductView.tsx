@@ -3,9 +3,10 @@
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useCartStore } from '@/stores/cart';
-import { useAuth } from '@/stores/auth';
-import { useToastStore } from '@/stores/toast';
+import { useCartStore } from '@/stores/cart'
+import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
+import { useLoadingStore } from '@/stores/loading'
 import { Product as StoreProduct, ProductVariant as StoreProductVariant } from '@/types';
 
 type ProductImage = {
@@ -53,8 +54,9 @@ type Product = {
 export default function ClientProductView({ product }: { product: Product }) {
   const prefersReduced = useReducedMotion();
   const { addItem } = useCartStore();
-  const { token } = useAuth();
+  const { token } = useAuthStore();
   const { showToast } = useToastStore();
+  const { setLoading, clearLoading } = useLoadingStore();
   
   // Lấy danh sách ảnh từ API
   const gallery = useMemo(() => {
@@ -175,6 +177,8 @@ export default function ClientProductView({ product }: { product: Product }) {
   // Xử lý thêm vào giỏ hàng
   const handleAddToCart = async () => {
     try {
+      setLoading(true, 'Đang thêm sản phẩm vào giỏ hàng...', 'creating');
+      
       // Convert through unknown to handle type compatibility
       await addItem(
         product as unknown as StoreProduct, 
@@ -191,6 +195,8 @@ export default function ClientProductView({ product }: { product: Product }) {
     } catch (error) {
       console.error('Error adding to cart:', error);
       showToast('Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng!', 'error');
+    } finally {
+      clearLoading();
     }
   };  const subtotal = useMemo(() => selectedVariant.price * quantity, [selectedVariant.price, quantity]);
 

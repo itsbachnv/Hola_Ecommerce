@@ -9,6 +9,7 @@ import { useBrands } from '@/hooks/useBrands'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { useLoadingStore } from '@/stores/loading'
 import { Product } from '@/types'
 import HeroSection_2 from '../homepage/HeroSection_2'
 
@@ -24,6 +25,7 @@ export default function GlamProductListPage() {
   const { addItem } = useCartStore()
   const { token } = useAuthStore()
   const { showToast } = useToastStore()
+  const { setLoading, clearLoading } = useLoadingStore()
 
   // Fetch products từ API - không filter theo brand để tránh spam API
   const { products, loading: productsLoading, error: productsError } = useProducts({
@@ -38,6 +40,8 @@ export default function GlamProductListPage() {
   // Handle add to cart
   const handleAddToCart = async (product: Product) => {
     try {
+      setLoading(true, 'Đang thêm sản phẩm vào giỏ hàng...', 'creating');
+      
       // Get the first available variant
       const variant = product.variants?.[0];
       if (!variant) {
@@ -51,6 +55,8 @@ export default function GlamProductListPage() {
     } catch (error) {
       console.error('Error adding to cart:', error);
       showToast('Có lỗi khi thêm sản phẩm vào giỏ hàng', 'error');
+    } finally {
+      clearLoading();
     }
   };
 

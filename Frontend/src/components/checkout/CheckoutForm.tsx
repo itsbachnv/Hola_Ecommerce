@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/stores/cart';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
+import { useLoadingStore } from '@/stores/loading';
 import Button from '@/components/ui/Button';
+import LoadingButton from '@/components/ui/LoadingButton';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -37,6 +39,7 @@ export default function CheckoutForm() {
   const { cart, clearCart } = useCartStore();
   const { user, setUser, setToken } = useAuthStore();
   const { showToast } = useToastStore();
+  const { setLoading, clearLoading } = useLoadingStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -64,6 +67,13 @@ export default function CheckoutForm() {
     setIsSubmitting(true);
 
     try {
+      // Set loading with appropriate message
+      if (!user && data.createAccount) {
+        setLoading(true, 'Đang tạo tài khoản và đặt hàng...', 'creating');
+      } else {
+        setLoading(true, 'Đang xử lý đơn hàng...', 'creating');
+      }
+
       // If guest wants to create account, validate password fields
       if (!user && data.createAccount) {
         if (!data.password || !data.confirmPassword) {
@@ -75,6 +85,9 @@ export default function CheckoutForm() {
           return;
         }
       }
+
+      // Update loading message
+      setLoading(true, 'Đang chuẩn bị thông tin đơn hàng...', 'saving');
 
       // Prepare order data
       const orderData = {
@@ -118,6 +131,9 @@ export default function CheckoutForm() {
 
       console.log('Submitting order:', orderData);
 
+      // Update loading message for API call
+      setLoading(true, 'Đang gửi đơn hàng đến server...', 'updating');
+
       // Here you would call your API to create the order
       // If createAccount is true, the API should:
       // 1. Create user account
@@ -131,8 +147,12 @@ export default function CheckoutForm() {
       //   setUser(response.user);
       // }
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Simulate API call with realistic timing
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Update loading for final steps
+      setLoading(true, 'Đang hoàn tất đơn hàng...', 'saving');
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Clear cart and redirect to success
       clearCart();
@@ -150,6 +170,7 @@ export default function CheckoutForm() {
       showToast('Có lỗi xảy ra khi đặt hàng', 'error');
     } finally {
       setIsSubmitting(false);
+      clearLoading();
     }
   };
 
@@ -467,21 +488,15 @@ export default function CheckoutForm() {
 
       {/* Submit Button */}
       <div className="sticky bottom-0 bg-white p-4 border-t">
-        <Button
+        <LoadingButton
           type="submit"
-          disabled={isSubmitting}
+          loading={isSubmitting}
+          loadingText={!user && watch('createAccount') ? 'Đang tạo tài khoản và đặt hàng...' : 'Đang xử lý đơn hàng...'}
           className="w-full"
           size="lg"
         >
-          {isSubmitting ? (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-              Đang xử lý...
-            </div>
-          ) : (
-            'Đặt hàng ngay'
-          )}
-        </Button>
+          Đặt hàng ngay
+        </LoadingButton>
       </div>
     </form>
   );
