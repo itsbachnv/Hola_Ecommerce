@@ -258,52 +258,47 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
     
     // If we have variants in the form data, create them after product creation
     if (productData.variants && productData.variants.length > 0) {
+      console.log(`Creating ${productData.variants.length} variants for product ${createdProduct.id}`)
       const variantsApiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/variants`
       
-      // Delete the default variant first (if needed)
-      // We'll update the default variant instead of creating new ones
-      const defaultVariantId = createdProduct.variants?.[0]?.id
-      
+      // Create all variants for the new product
       for (let i = 0; i < productData.variants.length; i++) {
         const variant = productData.variants[i]
         
-        if (i === 0 && defaultVariantId) {
-          // Update the default variant with first variant data
-          const updateVariantData = {
-            id: defaultVariantId,
-            sku: variant.sku || `SKU-${createdProduct.id}-${i + 1}`,
-            name: variant.name || 'Default',
-            price: variant.price || 0,
-            compareAtPrice: variant.compareAtPrice || null,
-            stockQty: variant.stockQty || 0,
-            weightGrams: variant.weightGrams || null,
-            attributes: variant.attributes ? JSON.stringify(variant.attributes) : null
-          }
-          
-          const updateResponse = await fetch(`${variantsApiUrl}/${defaultVariantId}`, {
-            method: 'PUT',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(updateVariantData)
-          })
-          
-        } else {
-          // Create additional variants
+        try {
+          // Create variant using backend CreateVariantDto format
           const createVariantData = {
             productId: createdProduct.id,
-            sku: variant.sku || `SKU-${createdProduct.id}-${i + 1}`,
+            sku: variant.sku || `SKU-${createdProduct.id}-${Date.now()}-${i + 1}`,
             name: variant.name || `Variant ${i + 1}`,
-            price: variant.price || 0,
-            compareAtPrice: variant.compareAtPrice || null,
-            stockQty: variant.stockQty || 0,
-            weightGrams: variant.weightGrams || null,
-            attributes: variant.attributes ? JSON.stringify(variant.attributes) : null
+            price: Number(variant.price) || 0,
+            compareAtPrice: variant.compareAtPrice ? Number(variant.compareAtPrice) : null,
+            stockQty: Number(variant.stockQty) || 0,
+            weightGrams: variant.weightGrams ? Number(variant.weightGrams) : null,
+            attributes: variant.attributes || null
           }
+          
+          console.log(`Creating variant ${i + 1}:`, createVariantData)
           
           const createResponse = await fetch(variantsApiUrl, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(createVariantData)
           })
+          
+          console.log(`Variant ${i + 1} response status:`, createResponse.status)
+          
+          if (!createResponse.ok) {
+            const errorData = await createResponse.json().catch(() => ({}))
+            console.error(`Failed to create variant ${i + 1}:`, errorData)
+            toast.error(`Lỗi tạo biến thể ${i + 1}: ${errorData.detail || errorData.message || 'Unknown error'}`)
+          } else {
+            const result = await createResponse.json()
+            console.log(`Successfully created variant ${i + 1}:`, result)
+          }
+        } catch (error) {
+          console.error(`Error creating variant ${i + 1}:`, error)
+          toast.error(`Lỗi tạo biến thể ${i + 1}`)
         }
       }
     }

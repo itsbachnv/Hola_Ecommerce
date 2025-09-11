@@ -39,6 +39,7 @@ export default function ProductManagement() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Fetch categories, products and brands using hooks (gọi 1 lần duy nhất)
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
@@ -56,22 +57,28 @@ export default function ProductManagement() {
 
   // Product management functions
   const handleCreateProduct = async (productData: ProductForm) => {
+    setIsSubmitting(true)
     try {
       await createProduct(productData)
       setIsCreateModalOpen(false)
       refetch() // Refresh the products list
     } catch (error) {
 
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const handleUpdateProduct = async (id: string, productData: ProductForm) => {
+    setIsSubmitting(true)
     try {
       await updateProduct(id, productData)
       setIsEditModalOpen(false)
       setSelectedProduct(null)
       refetch() // Refresh the products list
     } catch (error) {
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -151,6 +158,7 @@ export default function ProductManagement() {
               brands={brands}
               brandsLoading={brandsLoading}
               brandsError={brandsError}
+              isSubmitting={isSubmitting}
             />
           </DialogContent>
         </Dialog>
@@ -306,6 +314,7 @@ export default function ProductManagement() {
               brands={brands}
               brandsLoading={brandsLoading}
               brandsError={brandsError}
+              isSubmitting={isSubmitting}
             />
           )}
         </DialogContent>
@@ -521,7 +530,8 @@ function ProductForm({
   categoriesLoading,
   brands,
   brandsLoading,
-  brandsError
+  brandsError,
+  isSubmitting = false
 }: {
   product?: Product
   onSubmit: SubmitHandler<ProductForm>
@@ -531,12 +541,14 @@ function ProductForm({
   brands: Brand[]
   brandsLoading: boolean
   brandsError: string | null
+  isSubmitting?: boolean
 }) {
   const [selectedParentCategory, setSelectedParentCategory] = useState('')
   const [selectedChildCategory, setSelectedChildCategory] = useState('')
   const [productImages, setProductImages] = useState<string[]>([])
   // Remove unused imageFiles since we now use productImages array
   const [primaryImageIndex, setPrimaryImageIndex] = useState<number>(0) // Track which image is primary
+  const [isUploadingImages, setIsUploadingImages] = useState(false)
 
   // Separate parent and child categories
   const parentCategories = categories.filter(cat => cat.parentId === null || cat.parentId === undefined)
@@ -701,13 +713,18 @@ function ProductForm({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (files) {
-      const filesArray = Array.from(files)
-      // Create blob URLs for preview
-      const newImages = filesArray.map(file => URL.createObjectURL(file))
-      
-      // Store both blob URLs for preview and file objects for upload
-      setProductImages(prev => [...prev, ...newImages])
-      setNewImageFiles(prev => [...prev, ...filesArray])
+      setIsUploadingImages(true)
+      try {
+        const filesArray = Array.from(files)
+        // Create blob URLs for preview
+        const newImages = filesArray.map(file => URL.createObjectURL(file))
+        
+        // Store both blob URLs for preview and file objects for upload
+        setProductImages(prev => [...prev, ...newImages])
+        setNewImageFiles(prev => [...prev, ...filesArray])
+      } finally {
+        setIsUploadingImages(false)
+      }
     }
   }
 
@@ -828,8 +845,9 @@ function ProductForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      {/* Basic Info */}
+    <div className="relative">
+      <form onSubmit={handleSubmit(handleFormSubmit)} className={`space-y-6 ${(isSubmitting || isUploadingImages) ? 'pointer-events-none opacity-75' : ''}`}>
+        {/* Basic Info */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-gray-900">Thông tin cơ bản</h3>
         
@@ -1019,10 +1037,21 @@ function ProductForm({
             </div>
           ))}
           
-          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+          <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 ${
+            isUploadingImages ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+          }`}>
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <ImagePlus className="w-8 h-8 mb-2 text-gray-400" />
-              <p className="text-sm text-gray-500">Thêm ảnh</p>
+              {isUploadingImages ? (
+                <>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mb-2"></div>
+                  <p className="text-sm text-gray-500">Đang tải ảnh...</p>
+                </>
+              ) : (
+                <>
+                  <ImagePlus className="w-8 h-8 mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-500">Thêm ảnh</p>
+                </>
+              )}
             </div>
             <input
               type="file"
@@ -1030,6 +1059,7 @@ function ProductForm({
               accept="image/*"
               onChange={handleImageUpload}
               className="hidden"
+              disabled={isUploadingImages || isSubmitting}
             />
           </label>
         </div>
@@ -1065,11 +1095,11 @@ function ProductForm({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  SKU *
+                  SKU
                 </label>
                 <Input
-                  {...register(`variants.${index}.sku`, { required: 'SKU là bắt buộc' })}
-                  placeholder="Mã SKU"
+                  {...register(`variants.${index}.sku`)}
+                  placeholder="Mã SKU (tự động tạo nếu để trống)"
                 />
                 {errors.variants?.[index]?.sku && (
                   <p className="text-red-600 text-sm mt-1">{errors.variants[index]?.sku?.message}</p>
@@ -1180,13 +1210,41 @@ function ProductForm({
       </div>
 
       <div className="flex justify-end gap-4 pt-6 border-t">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Hủy
         </Button>
-        <Button type="submit">
+        <Button type="submit" disabled={isSubmitting}>
           {product ? 'Cập nhật sản phẩm' : 'Tạo sản phẩm'}
         </Button>
       </div>
-    </form>
+
+      {/* Loading Modal Overlay */}
+      {(isSubmitting || isUploadingImages) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600 mb-6"></div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+              {isSubmitting 
+                ? (product ? 'Đang cập nhật sản phẩm...' : 'Đang tạo sản phẩm...') 
+                : 'Đang tải ảnh lên...'
+              }
+            </h3>
+            <p className="text-sm text-gray-600 text-center max-w-sm">
+              {isSubmitting 
+                ? 'Đang xử lý dữ liệu và upload hình ảnh. Quá trình này có thể mất vài giây.' 
+                : 'Vui lòng đợi trong giây lát...'
+              }
+            </p>
+            {/* Progress dots animation */}
+            <div className="flex space-x-1 mt-4">
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+            </div>
+          </div>
+        </div>
+      )}
+      </form>
+    </div>
   )
 }
