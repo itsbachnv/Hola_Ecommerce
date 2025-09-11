@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 
 interface ToastProps {
   message: string;
@@ -32,26 +31,24 @@ export default function Toast({ message, type = 'success', duration = 3000, onCl
   const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
 
   const toastElement = (
-    <div className="fixed top-4 right-4 z-50">
-      <div
-        className={`${bgColor} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all duration-300 ${
-          isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
-        }`}
+    <div
+      className={`${bgColor} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all duration-300 ${
+        isVisible ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
+      }`}
+    >
+      <span className="text-lg">{icon}</span>
+      <span className="font-medium">{message}</span>
+      <button
+        onClick={() => {
+          setIsVisible(false);
+          setTimeout(onClose, 300);
+        }}
+        className="ml-2 text-white/70 hover:text-white"
       >
-        <span className="text-lg">{icon}</span>
-        <span className="font-medium">{message}</span>
-        <button
-          onClick={() => {
-            setIsVisible(false);
-            setTimeout(onClose, 300);
-          }}
-          className="ml-2 text-white/70 hover:text-white"
-        >
-          ×
-        </button>
-      </div>
+        ×
+      </button>
     </div>
   );
 
-  return createPortal(toastElement, document.body);
+  return toastElement;
 }

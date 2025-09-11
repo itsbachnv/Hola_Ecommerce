@@ -1,21 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import ShoppingCart from '@/components/cart/ShoppingCart';
 
 export default function CartPage() {
   const [isCartOpen, setIsCartOpen] = useState(true);
+  const router = useRouter();
 
   const handleCheckout = () => {
-    // TODO: Navigate to checkout
-    console.log('Navigating to checkout...');
+    router.push('/checkout');
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <ShoppingCart
         isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
         onCheckout={handleCheckout}
       />
       
