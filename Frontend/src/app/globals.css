@@ -98,3 +98,29 @@ img, video, iframe, svg {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+
+/* Background màu kem nhạt cho trang web giày */
+html, body {
+  background-color: #fcfaf2 !important; /* Màu kem nhạt sang trọng cho shop giày */
+}
+
+/* Make main containers transparent */
+#__next, [data-nextjs-scroll-focus-boundary] {
+  background-color: transparent !important;
+}
+
+/* Cards/components có background trắng tách biệt với nền kem */
+.bg-white {
+  background-color: #ffffff !important; /* pure white for contrast */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Header và các section chính dùng nền kem */
+section:not(.bg-white):not(.bg-black) {
+  background-color: transparent !important;
+}
+
+/* Subtle background cho các section */
+.bg-gray-50, .bg-gray-100 {
+  background-color: rgba(249, 250, 251, 0.8) !important;
+}

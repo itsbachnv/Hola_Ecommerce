@@ -13,7 +13,7 @@ export default function GlamHeroSection() {
   }, []);
 
   return (
-    <section className='relative w-full bg-white'>
+    <section className='relative w-full' style={{ backgroundColor: 'transparent' }}>
       {/* Glow background */}
       <div className='pointer-events-none absolute inset-0 -z-10'>
         <div className='absolute -inset-x-20 top-0 h-40 bg-[radial-gradient(ellipse_at_top,rgba(0,0,0,0.08),transparent_60%)]' />

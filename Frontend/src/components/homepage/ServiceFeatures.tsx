@@ -28,7 +28,7 @@ const features = [
 
 export default function ServiceFeatures() {
   return (
-    <section className="bg-white border-t border-gray-100 py-14">
+    <section className="border-t border-gray-100 py-14" style={{ backgroundColor: 'transparent' }}>
       <div className="mx-auto max-w-[1440px] px-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 md:gap-8 text-center">
           {features.map((f, i) => {

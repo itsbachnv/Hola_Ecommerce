@@ -434,6 +434,8 @@ export type VariantForm = {
   compareAtPrice?: number // Changed from originalPrice
   stockQty: number // Changed from stock
   weightGrams?: number // Added weightGrams
+  color?: string // Added color field
+  size?: string // Added size field
   attributes?: Record<string, unknown> // Changed to unknown
 }
 

@@ -21,7 +21,7 @@ export default function ConditionalLayout({ children }: ConditionalLayoutProps) 
     return (
       <AuthProvider>
         <Toaster position="top-right" />
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen" style={{ backgroundColor: '#fcfaf2' }}>
           {children}
         </div>
       </AuthProvider>

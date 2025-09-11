@@ -53,7 +53,7 @@ export const ProductCard = ({ name, image, price, slug }: ProductCardProps) => {
           <h3 className="line-clamp-1 text-base font-semibold text-gray-900">
             {name}
           </h3>
-          <p className="mt-1 text-pink-600 font-bold">${price}</p>
+          <p className="mt-1 text-black font-bold">{price.toLocaleString('vi-VN')}₫</p>
         </div>
       </Link>
     </motion.article>

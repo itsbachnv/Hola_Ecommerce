@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/stores/auth'
+import NotificationBell from '@/components/ui/NotificationBell'
 import { 
   Home,
   Package,
@@ -15,7 +16,6 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
   Search,
   User
 } from 'lucide-react'
@@ -97,7 +97,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const filteredSidebarItems = sidebarItems.filter(item => {
     if (!item.roles) return true
-    return item.roles.includes(user?.role || 'Customer')
+    const role = (user?.role || 'Customer') as 'Admin' | 'Staff' | 'Customer'
+    return item.roles.includes(role)
   })
 
   const handleLogout = () => {
@@ -120,7 +121,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         "fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="flex items-center justify-between h-16 px-6 border-b">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <h1 className="text-xl font-bold text-gray-900">
             {isCustomer ? 'Shop' : 'Admin Panel'}
           </h1>
@@ -182,7 +183,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Main content */}
       <div className="lg:ml-64">
         {/* Top bar */}
-        <header className="bg-white shadow-sm border-b">
+        <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between h-16 px-6">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -203,10 +204,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
 
             <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-lg hover:bg-gray-100 relative">
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-              </button>
+              <NotificationBell variant="admin" />
               
               <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                 <User className="w-4 h-4 text-gray-600" />

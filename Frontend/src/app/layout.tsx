@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="tc-new-price">
-      <body className="font-sans bg-white text-black">
+      <body className="font-sans text-black min-h-screen" style={{ backgroundColor: '#fcfaf2' }}>
         <ConditionalLayout>
           {children}
         </ConditionalLayout>

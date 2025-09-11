@@ -13,7 +13,8 @@ const nextConfig: NextConfig = {
         hostname: 'res.cloudinary.com',
       },
     ],
-  }
+  },
+  serverExternalPackages: [],
 };
 
 export default nextConfig;

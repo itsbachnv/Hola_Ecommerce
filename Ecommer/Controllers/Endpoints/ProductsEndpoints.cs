@@ -39,6 +39,17 @@ public static class ProductsEndpoints
             var data = await sender.Send(new GetProductByIdQuery(id, isAdmin));
             return data is null ? TypedResults.NotFound() : TypedResults.Ok(data);
         });
+        
+        group.MapGet("{slug}", async Task<Results<Ok<ProductDto>, NotFound>> (string slug, HttpContext context, ISender sender) =>
+        {
+            // Check role cho GetBySlug
+            var isAdmin = context.User.IsInRole("Admin") || 
+                          context.User.HasClaim(ClaimTypes.Role, "Admin") ||
+                          context.User.HasClaim("role", "Admin");
+        
+            var data = await sender.Send(new GetProductBySlugQuery(slug, isAdmin));
+            return data is null ? TypedResults.NotFound() : TypedResults.Ok(data);
+        });
 
         // Create (chỉ cho role Admin)
         group.MapPost("", async Task<Results<Created<ProductDto>, ValidationProblem>> (

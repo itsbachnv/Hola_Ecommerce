@@ -2,63 +2,88 @@ import React, { useState, useEffect } from 'react'
 import { UseFormRegisterReturn } from 'react-hook-form'
 
 interface VNDInputProps {
-  register: UseFormRegisterReturn
+  register?: UseFormRegisterReturn
   placeholder?: string
   className?: string
   error?: string
   defaultValue?: number
+  value?: number
+  onChange?: (value: number) => void
+  name?: string
 }
 
-// Format number to VND display
-const formatVND = (value: string | number): string => {
-  // Handle both string and number input
-  const numbers = String(value).replace(/\D/g, '')
-  
-  // Return empty if no numbers
-  if (!numbers) return ''
-  
-  // Format with thousand separators
-  return Number(numbers).toLocaleString('vi-VN')
-}
-
-// Convert VND display back to number
-const parseVND = (formattedValue: string): number => {
-  const numbers = formattedValue.replace(/\D/g, '')
-  return numbers ? Number(numbers) : 0
-}
-
-export default function VNDInput({ register, placeholder = '0', className = '', error, defaultValue }: VNDInputProps) {
+export default function VNDInput({ 
+  register, 
+  placeholder = '0', 
+  className = '', 
+  error, 
+  defaultValue, 
+  value,
+  onChange,
+  name
+}: VNDInputProps) {
   const [displayValue, setDisplayValue] = useState('')
 
-  // Initialize with default value if provided
+  // Initialize with value from form
   useEffect(() => {
-    if (defaultValue && defaultValue > 0) {
-      setDisplayValue(formatVND(defaultValue))
+    const currentValue = value ?? defaultValue ?? 0
+    if (currentValue > 0) {
+      setDisplayValue(new Intl.NumberFormat('vi-VN').format(currentValue))
+    } else {
+      setDisplayValue('')
     }
-  }, [defaultValue])
+  }, [defaultValue, value])
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value
-    const formatted = formatVND(inputValue)
+    
+    // Remove all non-digits
+    const digitsOnly = inputValue.replace(/[^\d]/g, '')
+    
+    // If empty, clear everything
+    if (!digitsOnly || digitsOnly === '0') {
+      setDisplayValue('')
+      const numericValue = 0
+      
+      // If using with Controller (has onChange prop), call it
+      if (onChange) {
+        onChange(numericValue)
+      }
+      
+      // If using with register, update form
+      if (register) {
+        const fakeEvent = {
+          target: { name: register.name, value: numericValue.toString() }
+        } as React.ChangeEvent<HTMLInputElement>
+        register.onChange(fakeEvent)
+      }
+      return
+    }
+    
+    // Convert to number and format with Vietnamese locale
+    const number = parseInt(digitsOnly, 10)
+    const formatted = new Intl.NumberFormat('vi-VN').format(number)
+    
+    // Update display
     setDisplayValue(formatted)
     
-    // Update the actual form value with the numeric value
-    const numericValue = parseVND(formatted)
+    // If using with Controller (has onChange prop), call it with the raw number
+    if (onChange) {
+      onChange(number)
+    }
     
-    // Call the original register onChange with numeric value
-    const fakeEvent = {
-      target: {
-        name: register.name,
-        value: numericValue.toString()
-      }
-    } as React.ChangeEvent<HTMLInputElement>
-    
-    register.onChange(fakeEvent)
+    // If using with register, update form with raw number
+    if (register) {
+      const fakeEvent = {
+        target: { name: register.name, value: number.toString() }
+      } as React.ChangeEvent<HTMLInputElement>
+      register.onChange(fakeEvent)
+    }
   }
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    // Call original onBlur if it exists
-    if (register.onBlur) {
+    // Call original onBlur if exists
+    if (register?.onBlur) {
       register.onBlur(e)
     }
   }
@@ -67,8 +92,8 @@ export default function VNDInput({ register, placeholder = '0', className = '', 
     <div className="relative">
       <input
         type="text"
-        name={register.name}
-        ref={register.ref}
+        name={register?.name || name}
+        ref={register?.ref}
         value={displayValue}
         onChange={handleChange}
         onBlur={handleBlur}
@@ -88,23 +113,22 @@ export default function VNDInput({ register, placeholder = '0', className = '', 
 // Hook for easier usage
 export const useVNDInput = (defaultValue?: number) => {
   const [displayValue, setDisplayValue] = useState(
-    defaultValue ? formatVND(defaultValue.toString()) : ''
+    defaultValue ? new Intl.NumberFormat('vi-VN').format(defaultValue) : ''
   )
 
   const setValue = (value: number) => {
-    setDisplayValue(formatVND(value.toString()))
+    setDisplayValue(new Intl.NumberFormat('vi-VN').format(value))
   }
 
   const getValue = (): number => {
-    return parseVND(displayValue)
+    const numbers = displayValue.replace(/[^\d]/g, '')
+    return numbers ? Number(numbers) : 0
   }
 
   return {
     displayValue,
     setDisplayValue,
     setValue,
-    getValue,
-    formatVND,
-    parseVND
+    getValue
   }
 }

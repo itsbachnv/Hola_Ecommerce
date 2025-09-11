@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Ecommer.Application.Abstractions;
 using Ecommer.Application.Abstractions.Products;
 using Ecommer.Application.Products.Dtos;
@@ -26,6 +27,7 @@ public record ProductVariantUpdateDto(
     string? Name,
     decimal Price,
     decimal? CompareAtPrice,
+    JsonElement? Attributes,
     int StockQty,
     int? WeightGrams,
     bool IsDeleted = false
@@ -98,7 +100,7 @@ public class UpdateProductHandler : IRequestHandler<UpdateProductCommand, Produc
                 product.Variants.Remove(existingVariant);
             }
         }
-
+    
         // Update or create variants
         var variantsToProcess = variantDtos.Where(v => !v.IsDeleted).ToList();
         foreach (var variantDto in variantsToProcess)
@@ -115,6 +117,9 @@ public class UpdateProductHandler : IRequestHandler<UpdateProductCommand, Produc
                     existingVariant.CompareAtPrice = variantDto.CompareAtPrice;
                     existingVariant.StockQty = variantDto.StockQty;
                     existingVariant.WeightGrams = variantDto.WeightGrams;
+                    existingVariant.Attributes = variantDto.Attributes.HasValue
+                        ? JsonDocument.Parse(variantDto.Attributes.Value.GetRawText())
+                        : null;
                     existingVariant.UpdatedAt = DateTimeOffset.UtcNow;
                 }
             }
@@ -129,6 +134,9 @@ public class UpdateProductHandler : IRequestHandler<UpdateProductCommand, Produc
                     Price = variantDto.Price,
                     CompareAtPrice = variantDto.CompareAtPrice,
                     StockQty = variantDto.StockQty,
+                    Attributes = variantDto.Attributes.HasValue
+                        ? JsonDocument.Parse(variantDto.Attributes.Value.GetRawText())
+                        : null,
                     WeightGrams = variantDto.WeightGrams,
                     CreatedAt = DateTimeOffset.UtcNow,
                     UpdatedAt = DateTimeOffset.UtcNow
@@ -137,7 +145,6 @@ public class UpdateProductHandler : IRequestHandler<UpdateProductCommand, Produc
             }
         }
     }
-
     private async Task UpdateImages(Product product, List<ProductImageUpdateDto> imageDtos, CancellationToken ct)
     {
         // Delete images marked for deletion

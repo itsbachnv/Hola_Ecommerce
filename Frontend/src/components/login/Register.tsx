@@ -49,7 +49,7 @@ export default function GlamRegister() {
   }
 
   return (
-    <div className='relative min-h-screen w-full bg-white'>
+    <div className='relative min-h-screen w-full' style={{ backgroundColor: '#fcfaf2' }}>
       {/* glow */}
       <div className='pointer-events-none absolute inset-0'>
         <div className='absolute -inset-x-32 top-0 h-56 bg-[radial-gradient(ellipse_at_top,rgba(0,0,0,0.06),transparent_60%)]' />
@@ -74,7 +74,7 @@ export default function GlamRegister() {
                   inputMode='email'
                   autoComplete='email'
                   placeholder='Enter your email address *'
-                  className='w-full rounded-full bg-gray-100 px-5 py-3 outline-none ring-1 ring-transparent focus:ring-gray-300'
+                  className='w-full rounded-full px-5 py-3 outline-none ring-1 ring-gray-300 focus:ring-gray-400 bg-white/80'
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -88,7 +88,7 @@ export default function GlamRegister() {
                     type={showPw1 ? 'text' : 'password'}
                     autoComplete='new-password'
                     placeholder='Password *'
-                    className='w-full rounded-full bg-gray-100 px-5 py-3 outline-none ring-1 ring-transparent focus:ring-gray-300 pr-12'
+                    className='w-full rounded-full px-5 py-3 outline-none ring-1 ring-gray-300 focus:ring-gray-400 pr-12 bg-white/80'
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
@@ -102,7 +102,7 @@ export default function GlamRegister() {
                   {showPw1 ? '🙈' : '👁️'}
                 </button>
                 {/* strength meter */}
-                <div className='mt-2 h-1.5 w-full rounded-full bg-gray-100'>
+                <div className='mt-2 h-1.5 w-full rounded-full bg-white/60'>
                   <div
                     className={`h-full rounded-full ${
                       strength <= 1 ? 'bg-rose-400 w-1/4' : strength === 2 ? 'bg-amber-400 w-2/4' : strength === 3 ? 'bg-lime-500 w-3/4' : 'bg-emerald-500 w-full'
@@ -120,7 +120,7 @@ export default function GlamRegister() {
                     type={showPw2 ? 'text' : 'password'}
                     autoComplete='new-password'
                     placeholder='Confirm password *'
-                    className='w-full rounded-full bg-gray-100 px-5 py-3 outline-none ring-1 ring-transparent focus:ring-gray-300 pr-12'
+                    className='w-full rounded-full px-5 py-3 outline-none ring-1 ring-gray-300 focus:ring-gray-400 pr-12 bg-white/80'
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                   />

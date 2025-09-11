@@ -5,6 +5,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useProducts } from '@/hooks/useProducts'
 import { useBrands } from '@/hooks/useBrands'
+import HeroSection_2 from '../homepage/HeroSection_2'
 
 export default function GlamProductListPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
@@ -85,15 +86,6 @@ export default function GlamProductListPage() {
     return arr
   }, [products, selectedCategoryId, selectedBrandId, maxPrice, sort])
 
-  // Debug log
-  console.log('Products debug:', {
-    products,
-    productsLength: products?.length,
-    loading: productsLoading,
-    error: productsError,
-    firstProduct: products[0] // Xem structure của product đầu tiên
-  })
-
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
   const pageSafe = Math.min(page, totalPages)
   const items = filtered.slice((pageSafe - 1) * perPage, pageSafe * perPage)
@@ -103,6 +95,7 @@ export default function GlamProductListPage() {
   return (
     <div className='mx-auto max-w-[1280px] px-4 md:px-10 lg:px-16 py-10'>
       {/* Title */}
+      <HeroSection_2/>
       <div className='text-center mb-8'>
         <p className='text-xs uppercase tracking-widest text-gray-500'>Cửa hàng</p>
         <h1 className='text-2xl md:text-4xl font-extrabold'>Danh sách sản phẩm</h1>

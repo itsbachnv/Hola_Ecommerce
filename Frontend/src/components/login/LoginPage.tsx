@@ -97,7 +97,7 @@ export default function GlamLogin() {
   }
 
   return (
-    <div className='relative min-h-screen w-full bg-white'>
+    <div className='relative min-h-screen w-full' style={{ backgroundColor: '#fcfaf2' }}>
       {/* subtle background glow */}
       <div className='pointer-events-none absolute inset-0'>
         <div className='absolute -inset-x-32 top-0 h-56 bg-[radial-gradient(ellipse_at_top,rgba(0,0,0,0.06),transparent_60%)]' />
@@ -121,7 +121,7 @@ export default function GlamLogin() {
                   inputMode='email'
                   autoComplete='email'
                   placeholder='Enter your email address *'
-                  className='w-full rounded-full bg-gray-100 px-5 py-3 outline-none ring-1 ring-transparent focus:ring-gray-300'
+                  className='w-full rounded-full px-5 py-3 outline-none ring-1 ring-gray-300 focus:ring-gray-400 bg-white/80'
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   aria-invalid={!!error && !/.+@.+\..+/.test(email)}
@@ -136,7 +136,7 @@ export default function GlamLogin() {
                     type={showPw ? 'text' : 'password'}
                     autoComplete='current-password'
                     placeholder='Password *'
-                    className='w-full rounded-full bg-gray-100 px-5 py-3 outline-none ring-1 ring-transparent focus:ring-gray-300 pr-12'
+                    className='w-full rounded-full px-5 py-3 outline-none ring-1 ring-gray-300 focus:ring-gray-400 pr-12 bg-white/80'
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     aria-invalid={!!error && password.length < 6}
@@ -214,10 +214,8 @@ export default function GlamLogin() {
         </ClientOnlyMotion>
 
         {/* Right: New Customer card */}
-        <ClientOnlyMotion
-          className='w-full md:w-1/2 bg-[#fafafa] flex items-center justify-center'
-          delay={0.05}
-        >
+        <div className='w-full md:w-1/2 flex items-center justify-center' style={{ backgroundColor: 'rgba(252, 250, 242, 0.5)' }}>
+          <ClientOnlyMotion delay={0.05}>
           <div className='w-full max-w-md p-8 md:p-12'>
             <h2 className='text-3xl md:text-4xl font-extrabold mb-4 text-center md:text-left'>New Customer</h2>
             <p className='text-gray-700 mb-8 text-center md:text-left'>
@@ -246,7 +244,8 @@ export default function GlamLogin() {
               <p className='mt-2 text-right text-xs text-gray-400'>For all orders from $150</p>
             </div>
           </div>
-        </ClientOnlyMotion>
+          </ClientOnlyMotion>
+        </div>
       </div>
     </div>
   )

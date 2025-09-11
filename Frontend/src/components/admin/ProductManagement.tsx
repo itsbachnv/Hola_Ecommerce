@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useForm, useFieldArray, SubmitHandler } from 'react-hook-form'
+import { useForm, useFieldArray, SubmitHandler, Controller } from 'react-hook-form'
 import { Product, Category, Brand, ProductImage } from '@/types'
 import type { ProductForm } from '@/types'
 import { formatPrice, formatDate } from '@/lib/utils'
@@ -239,17 +239,17 @@ export default function ProductManagement() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full border-collapse table-fixed">
               <thead>
-                <tr className="border-b">
-                <th className="text-left py-3 px-4">Sản phẩm</th>
-                <th className="text-left py-3 px-4">Danh mục</th>
-                <th className="text-left py-3 px-4">Khoảng giá bán</th>
-                <th className="text-left py-3 px-4">Giá gốc</th>
-                <th className="text-left py-3 px-4">Tồn kho</th>
-                <th className="text-left py-3 px-4">Trạng thái</th>
-                <th className="text-left py-3 px-4">Ngày tạo</th>
-                <th className="text-left py-3 px-4">Hành động</th>
+                <tr className="border-b border-gray-200">
+                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-80">Sản phẩm</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Danh mục</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-40">Khoảng giá bán</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Giá gốc</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-24">Tồn kho</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-28">Trạng thái</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Ngày tạo</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Hành động</th>
               </tr>
 
               </thead>
@@ -373,41 +373,41 @@ function ProductRow({
   const minPrice = variants.length > 0 ? Math.min(...variants.map(v => v.price)) : 0
   const maxPrice = variants.length > 0 ? Math.max(...variants.map(v => v.price)) : 0
   const compareAtPrices = variants.map(v => v.compareAtPrice || 0).filter(price => price > 0)
+  const minCompareAtPrice = compareAtPrices.length > 0 ? Math.min(...compareAtPrices) : 0
+  const maxCompareAtPrice = compareAtPrices.length > 0 ? Math.max(...compareAtPrices) : 0
   const totalStock = variants.reduce((sum, v) => sum + (v.stockQty || 0), 0)
   const isLowStock = totalStock > 0 && totalStock <= 10
   const isOutOfStock = totalStock === 0
 
   return (
     <>
-    <tr className="border-b hover:bg-gray-50">
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+    <tr className="border-b border-gray-200 hover:bg-gray-50">
+      <td className="py-4 px-4 align-top">
+        <div className="flex items-start gap-3">
+          <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
                onClick={() => product.primaryImageUrl && setShowImageModal(true)}>
             {product.primaryImageUrl ? (
               <img
                 src={product.primaryImageUrl}
                 alt={product.name}
-                width={48}
-                height={48}
-                className="w-full h-full object-cover"
+                className="w-12 h-12 object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+              <div className="w-12 h-12 flex items-center justify-center text-gray-400 text-xs">
                 No Image
               </div>
             )}
           </div>
-          <div>
-            <p className="font-medium text-gray-900">{product.name}</p>
-            <p className="text-sm text-gray-600 line-clamp-1">{product.description}</p>
+          <div className="min-w-0 flex-1 pt-1">
+            <p className="font-medium text-gray-900 truncate leading-5">{product.name}</p>
+            <p className="text-sm text-gray-600 line-clamp-1 mt-1">{product.description}</p>
           </div>
         </div>
       </td>
-      <td className="py-3 px-4">
+      <td className="py-4 px-4 align-top">
         <span className="text-sm text-gray-600">{product.categoryName || "N/A"}</span>
       </td>
-      <td className="py-3 px-4">
+      <td className="py-4 px-4 align-top">
         <span className="text-sm font-medium">
           {minPrice === maxPrice 
             ? formatPrice(minPrice)
@@ -415,13 +415,18 @@ function ProductRow({
           }
         </span>
       </td>
-      <td className="py-3 px-4">
+      <td className="py-4 px-4 align-top">
         <span className="text-sm font-medium">
-          {formatPrice(compareAtPrices.length > 0 ? Math.min(...compareAtPrices) : 0)
-          }
+          {compareAtPrices.length > 0 ? (
+            minCompareAtPrice === maxCompareAtPrice 
+              ? formatPrice(minCompareAtPrice)
+              : `${formatPrice(minCompareAtPrice)} - ${formatPrice(maxCompareAtPrice)}`
+          ) : (
+            <span className="text-gray-400">N/A</span>
+          )}
         </span>
       </td>
-      <td className="py-3 px-4">
+      <td className="py-4 px-4 align-top">
         <span className={`text-sm font-medium ${
           isOutOfStock ? 'text-red-600' : 
           isLowStock ? 'text-yellow-600' : 
@@ -430,7 +435,7 @@ function ProductRow({
           {totalStock}
         </span>
       </td>
-      <td className="py-3 px-4">
+      <td className="py-4 px-4 align-top">
         <button
           onClick={() => onToggleStatus(!product.status)}
           className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
@@ -442,12 +447,12 @@ function ProductRow({
           {product.status === 'ACTIVE' ? 'Active' : 'Inactive'}
         </button>
       </td>
-      <td className="py-3 px-4">
+      <td className="py-4 px-4 align-top">
         <span className="text-sm text-gray-600">
           {product.createdAt ? formatDate(product.createdAt) : 'N/A'}
         </span>
       </td>
-      <td className="py-3 px-4">
+      <td className="py-4 px-4 align-top">
         <div className="relative">
           <button
             onClick={() => setShowActions(!showActions)}
@@ -542,7 +547,7 @@ function ProductForm({
     return categoryParentId === selectedParentId
   })
   
-  const { register, handleSubmit, formState: { errors }, setValue, control } = useForm<ProductForm>({
+  const { register, handleSubmit, formState: { errors }, setValue, control, watch } = useForm<ProductForm>({
     defaultValues: product ? {
       name: product.name,
       slug: product.slug,
@@ -600,6 +605,10 @@ function ProductForm({
       setNewImageFiles([])
       setImagesToDelete([])
       
+      // Set basic product fields
+      setValue('name', product.name || '')
+      setValue('description', product.description || '')
+      
       // Find and set primary image index
       const primaryIndex = product.images?.findIndex(img => img.isPrimary) || 0
       setPrimaryImageIndex(primaryIndex >= 0 ? primaryIndex : 0)
@@ -607,6 +616,38 @@ function ProductForm({
       // Set brandId in form
       if (product.brandId) {
         setValue('brandId', product.brandId)
+      }
+
+      // Set variants data in form
+      if (product.variants && product.variants.length > 0) {
+        product.variants.forEach((variant, index) => {
+          setValue(`variants.${index}.name`, variant.name || 'Default')
+          setValue(`variants.${index}.sku`, variant.sku || '')
+          setValue(`variants.${index}.price`, variant.price || 0)
+          setValue(`variants.${index}.compareAtPrice`, variant.compareAtPrice || 0)
+          setValue(`variants.${index}.stockQty`, variant.stockQty || 0)
+          setValue(`variants.${index}.weightGrams`, variant.weightGrams || 0)
+          
+          // Extract color and size from attributes
+          if (variant.attributes) {
+            let attrs: Record<string, unknown> = {}
+            try {
+              // Parse attributes if it's a string
+              attrs = typeof variant.attributes === 'string' 
+                ? JSON.parse(variant.attributes) 
+                : variant.attributes
+            } catch {
+              attrs = {}
+            }
+            
+            // Set individual color and size fields
+            setValue(`variants.${index}.color`, attrs.color as string || '')
+            setValue(`variants.${index}.size`, attrs.size as string || '')
+          } else {
+            setValue(`variants.${index}.color`, '')
+            setValue(`variants.${index}.size`, '')
+          }
+        })
       }
       
       if (categories.length > 0) {
@@ -632,6 +673,23 @@ function ProductForm({
       setPrimaryImageIndex(0)
       setSelectedParentCategory('')
       setSelectedChildCategory('')
+      
+      // Reset form values
+      setValue('name', '')
+      setValue('description', '')
+      setValue('brandId', 0)
+      setValue('categoryId', 0)
+      // Reset variants array to have at least one default variant
+      setValue('variants', [{
+        name: 'Default',
+        sku: '',
+        price: 0,
+        compareAtPrice: 0,
+        stockQty: 0,
+        weightGrams: 0,
+        color: '',
+        size: ''
+      }])
     }
   }, [product, categories, setValue])
 
@@ -691,11 +749,32 @@ function ProductForm({
       compareAtPrice: 0,
       stockQty: 0,
       weightGrams: 0,
+      color: '',
+      size: '',
       attributes: {}
     })
   }
 
   const handleFormSubmit = (data: ProductForm) => {
+    // Transform variants: combine color/size into attributes JSON
+    const transformedVariants = data.variants?.map(variant => {
+      // Build attributes object from color and size
+      const attributes: Record<string, unknown> = {}
+      
+      if (variant.color?.trim()) {
+        attributes.color = variant.color.trim()
+      }
+      
+      if (variant.size?.trim()) {
+        attributes.size = variant.size.trim()
+      }
+      
+      return {
+        ...variant,
+        attributes: Object.keys(attributes).length > 0 ? attributes : {}
+      }
+    }) || []
+
     // Send complete product data including variants for proper creation/update
     const formData: ProductForm = {
       name: data.name,
@@ -704,7 +783,7 @@ function ProductForm({
       categoryId: data.categoryId || undefined,
       description: data.description || undefined,
       status: data.status || 'ACTIVE',
-      variants: data.variants || [], // Include variants data
+      variants: transformedVariants, // Use transformed variants
       images: buildImagesData(),
       newImageFiles: newImageFiles, // Send new files separately
       imagesToDelete: imagesToDelete // Send IDs of images to delete
@@ -1028,10 +1107,19 @@ function ProductForm({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Giá bán *
                 </label>
-                <VNDInput
-                  register={register(`variants.${index}.price`, { required: 'Giá bán là bắt buộc', min: 0 })}
-                  placeholder="0"
-                  error={errors.variants?.[index]?.price?.message}
+                <Controller
+                  name={`variants.${index}.price`}
+                  control={control}
+                  rules={{ required: 'Giá bán là bắt buộc', min: 0 }}
+                  render={({ field }) => (
+                    <VNDInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      name={field.name}
+                      placeholder="0"
+                      error={errors.variants?.[index]?.price?.message}
+                    />
+                  )}
                 />
               </div>
 
@@ -1039,9 +1127,18 @@ function ProductForm({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Giá so sánh (giá gốc)
                 </label>
-                <VNDInput
-                  register={register(`variants.${index}.compareAtPrice`, { min: 0 })}
-                  placeholder="0"
+                <Controller
+                  name={`variants.${index}.compareAtPrice`}
+                  control={control}
+                  rules={{ min: 0 }}
+                  render={({ field }) => (
+                    <VNDInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      name={field.name}
+                      placeholder="0"
+                    />
+                  )}
                 />
               </div>
 
@@ -1054,6 +1151,28 @@ function ProductForm({
                   {...register(`variants.${index}.weightGrams`, { min: 0 })}
                   placeholder="0"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Màu sắc
+                  </label>
+                  <Input
+                    {...register(`variants.${index}.color`)}
+                    placeholder="Ví dụ: Đỏ, Xanh, Đen..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Kích thước
+                  </label>
+                  <Input
+                    {...register(`variants.${index}.size`)}
+                    placeholder="Ví dụ: S, M, L, XL hoặc 38, 39, 40..."
+                  />
+                </div>
               </div>
             </div>
           </div>

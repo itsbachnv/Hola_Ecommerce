@@ -277,7 +277,7 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
             compareAtPrice: variant.compareAtPrice || null,
             stockQty: variant.stockQty || 0,
             weightGrams: variant.weightGrams || null,
-            attributes: variant.attributes || null
+            attributes: variant.attributes ? JSON.stringify(variant.attributes) : null
           }
           
           const updateResponse = await fetch(`${variantsApiUrl}/${defaultVariantId}`, {
@@ -296,7 +296,7 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
             compareAtPrice: variant.compareAtPrice || null,
             stockQty: variant.stockQty || 0,
             weightGrams: variant.weightGrams || null,
-            attributes: variant.attributes || null
+            attributes: variant.attributes ? JSON.stringify(variant.attributes) : null
           }
           
           const createResponse = await fetch(variantsApiUrl, {
@@ -395,6 +395,7 @@ export async function updateProduct(id: string, productData: ProductForm): Promi
         compareAtPrice: v.compareAtPrice || null,
         stockQty: v.stockQty,
         weightGrams: v.weightGrams || null,
+        attributes: v.attributes || null,
         isDeleted: false
       })) || null,
       images: allImagesData
