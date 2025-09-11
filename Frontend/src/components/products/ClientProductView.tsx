@@ -3,6 +3,10 @@
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useCartStore } from '@/stores/cart';
+import { useAuth } from '@/stores/auth';
+import { useToastStore } from '@/stores/toast';
+import { Product as StoreProduct, ProductVariant as StoreProductVariant } from '@/types';
 
 type ProductImage = {
   id: number;
@@ -48,6 +52,9 @@ type Product = {
 
 export default function ClientProductView({ product }: { product: Product }) {
   const prefersReduced = useReducedMotion();
+  const { addItem } = useCartStore();
+  const { token } = useAuth();
+  const { showToast } = useToastStore();
   
   // Lấy danh sách ảnh từ API
   const gallery = useMemo(() => {
@@ -165,7 +172,27 @@ export default function ClientProductView({ product }: { product: Product }) {
     return selectedVariant.stockQty > 0; // Còn hàng
   }, [availableColors.length, selectedColor, availableSizes.length, selectedSize, selectedVariant.stockQty]);
 
-  const subtotal = useMemo(() => selectedVariant.price * quantity, [selectedVariant.price, quantity]);
+  // Xử lý thêm vào giỏ hàng
+  const handleAddToCart = async () => {
+    try {
+      // Convert through unknown to handle type compatibility
+      await addItem(
+        product as unknown as StoreProduct, 
+        selectedVariant as unknown as StoreProductVariant, 
+        quantity, 
+        token || undefined
+      );
+      
+      // Show success toast
+      showToast(
+        `Đã thêm ${quantity} sản phẩm "${product.name}" vào giỏ hàng!`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      showToast('Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng!', 'error');
+    }
+  };  const subtotal = useMemo(() => selectedVariant.price * quantity, [selectedVariant.price, quantity]);
 
   return (
     <section className="w-full max-w-[1200px] mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -347,9 +374,7 @@ export default function ClientProductView({ product }: { product: Product }) {
         <div className="flex flex-col md:flex-row gap-3 mt-6">
           <button
             className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-6 py-3 font-semibold text-white hover:bg-black/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => {
-              // TODO: Thêm vào giỏ
-            }}
+            onClick={handleAddToCart}
             disabled={!canPurchase}
             title={!canPurchase ? 'Vui lòng chọn đầy đủ tùy chọn sản phẩm' : ''}
           >

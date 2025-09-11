@@ -28,7 +28,6 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     }
 
     const product = await res.json();
-    console.log('Product data received:', JSON.stringify(product, null, 2));
     return <ClientProductView product={product} />;
   } catch (error) {
     return notFound();

@@ -2,6 +2,7 @@
 import './globals.css';
 import type { Metadata } from "next";
 import ConditionalLayout from '@/components/layout/ConditionalLayout';
+import ToastContainer from '@/components/ui/ToastContainer';
 
 export const metadata: Metadata = {
   title: "Hola Ecommerce",
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ConditionalLayout>
           {children}
         </ConditionalLayout>
+        <ToastContainer />
       </body>
     </html>
   );

@@ -5,23 +5,28 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/stores/auth'
+import { useCartStore } from '@/stores/cart'
 import { useCategories } from '@/hooks/useCategories'
 import { Category } from '@/types'
 import NotificationBell from '@/components/ui/NotificationBell'
+import MiniCartPreview from '@/components/cart/MiniCartPreview'
 import React from 'react'
 
 type Props = {
-  cartCount?: number
   promoText?: string
 }
 
-export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10% cho tất cả sản phẩm nhân ngày 2-9' }: Props) {
+export default function GlamHeader({ promoText = 'Giảm thêm 10% cho tất cả sản phẩm nhân ngày 2-9' }: Props) {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [show, setShow] = useState(true)
   const [categoriesOpen, setCategoriesOpen] = useState(false)
   const lastY = useRef(0)
   const { isAuthenticated, user, logout } = useAuth()
+  const { getItemCount } = useCartStore()
+  
+  // Get cart count from store
+  const cartCount = getItemCount()
   
   // Gọi categories một lần duy nhất ở component cha
   const { categories, loading: categoriesLoading } = useCategories()
@@ -97,18 +102,33 @@ export default function GlamHeader({ cartCount = 0, promoText = 'Giảm thêm 10
                   </span>
                 </div>
 
-                <Link href='/cart' className='relative grid h-10 w-10 place-items-center rounded-xl ring-1 ring-black/10 hover:bg-black/5'>
-                  <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
-                    <circle cx='9' cy='21' r='1' />
-                    <circle cx='20' cy='21' r='1' />
-                    <path d='M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L22 6H6' />
-                  </svg>
+                {/* Cart with hover preview */}
+                <div className='relative group'>
+                  <Link href='/cart' className='relative grid h-10 w-10 place-items-center rounded-xl ring-1 ring-black/10 hover:bg-black/5 transition-colors'>
+                    <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+                      <circle cx='9' cy='21' r='1' />
+                      <circle cx='20' cy='21' r='1' />
+                      <path d='M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L22 6H6' />
+                    </svg>
+                    {cartCount > 0 && (
+                      <span className='absolute -top-1 -right-1 rounded-full bg-pink-600 px-1.5 py-0.5 text-[10px] font-bold text-white'>
+                        {cartCount}
+                      </span>
+                    )}
+                  </Link>
+                  
+                  {/* Hover Dropdown với khu vực hover extended */}
                   {cartCount > 0 && (
-                    <span className='absolute -top-1 -right-1 rounded-full bg-pink-600 px-1.5 py-0.5 text-[10px] font-bold text-white'>
-                      {cartCount}
-                    </span>
+                    <div className='absolute right-0 top-full opacity-0 invisible pointer-events-none group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto transition-all duration-200 ease-in-out z-50'>
+                      {/* Invisible area để maintain hover */}
+                      <div className='w-80 h-2 bg-transparent'></div>
+                      {/* Actual dropdown */}
+                      <div className='animate-in fade-in-0 slide-in-from-top-2 duration-200'>
+                        <MiniCartPreview />
+                      </div>
+                    </div>
                   )}
-                </Link>
+                </div>
 
                 {/* Notification Bell - Only show when authenticated */}
                 {isAuthenticated && <NotificationBell />}

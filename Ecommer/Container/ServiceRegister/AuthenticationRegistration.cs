@@ -85,9 +85,11 @@ public static class AuthenticationRegistration
             services.AddAuthorization(options =>
             {
                 options.AddPolicy("UserPolicy", policy =>
-                    policy.RequireClaim(ClaimTypes.Role, "Admin", "Staff", "Customer, Guest"));
+                    policy.RequireClaim(ClaimTypes.Role, "Admin", "Staff", "Customer"));
                 options.AddPolicy("AdminPolicy", policy =>
                     policy.RequireClaim(ClaimTypes.Role, "Admin"));
+                options.AddPolicy("UserCommon", policy =>
+                    policy.RequireClaim(ClaimTypes.Role, "Admin", "Staff", "Customer, Guest"));
             });
 
             return services;

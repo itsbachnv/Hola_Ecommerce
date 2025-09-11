@@ -1,24 +1,89 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { X, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
-import { CartItem } from '@/types'
-import { cn, formatPrice } from '@/lib/utils'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatPrice } from '@/lib/utils'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import Button from '@/components/ui/Button'
 import { useCartStore } from '@/stores/cart'
 
+// Helper function to parse variant attributes (matching ClientProductView)
+const parseAttributes = (attributes: Record<string, unknown> | null | undefined): Record<string, string> => {
+  if (!attributes) return {};
+  
+  // Nếu là string JSON, parse nó
+  if (typeof attributes === 'string') {
+    try {
+      return JSON.parse(attributes);
+    } catch {
+      return {};
+    }
+  }
+  
+  // Nếu là object, convert values thành string
+  const result: Record<string, string> = {};
+  Object.entries(attributes).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) {
+      result[key] = String(value);
+    }
+  });
+  return result;
+};
+
+// Helper function to format attributes for display
+const formatVariantAttributes = (attributes: Record<string, unknown>): string => {
+  const parsed = parseAttributes(attributes);
+  const formatted: string[] = [];
+  
+  Object.entries(parsed).forEach(([key, value]) => {
+    if (key === 'color') {
+      formatted.push(`Màu: ${value}`);
+    } else if (key === 'size') {
+      formatted.push(`Size: ${value}`);
+    } else {
+      formatted.push(`${key}: ${value}`);
+    }
+  });
+  
+  return formatted.join(', ');
+};
+
+// Type for cart item that works with both old and new structure
+interface CartItemDisplay {
+  id: string
+  quantity: number
+  product: {
+    id: number
+    name: string
+    images?: Array<{ url: string } | string>
+    primaryImageUrl?: string | null
+  }
+  variant: {
+    price: number
+    attributes?: Record<string, unknown>
+    stockQty?: number
+    stock?: number
+  }
+}
+
 interface ShoppingCartProps {
   isOpen: boolean
-  onClose: () => void
   onCheckout: () => void
 }
 
-export default function ShoppingCart({ isOpen, onClose, onCheckout }: ShoppingCartProps) {
+export default function ShoppingCart({ isOpen, onCheckout }: ShoppingCartProps) {
   const { cart, updateQuantity, removeItem, clearCart, getTotal, getItemCount } = useCartStore()
+  const router = useRouter()
 
   if (!isOpen) return null
+
+  const handleBackdropClick = () => {
+    router.push('/products')
+  }
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -36,7 +101,7 @@ export default function ShoppingCart({ isOpen, onClose, onCheckout }: ShoppingCa
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
+        onClick={handleBackdropClick}
       />
       
       {/* Cart Panel */}
@@ -47,18 +112,19 @@ export default function ShoppingCart({ isOpen, onClose, onCheckout }: ShoppingCa
             <h2 className="text-lg font-semibold text-gray-900">
               Shopping Cart ({itemCount})
             </h2>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <Link href="/products">
+              <button
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </Link>
           </div>
 
           {/* Cart Items */}
           <div className="flex-1 overflow-y-auto p-4">
             {!cart || cart.items.length === 0 ? (
-              <EmptyCart onClose={onClose} />
+              <EmptyCart />
             ) : (
               <div className="space-y-4">
                 {cart.items.map((item) => (
@@ -91,13 +157,14 @@ export default function ShoppingCart({ isOpen, onClose, onCheckout }: ShoppingCa
                 >
                   Checkout
                 </Button>
-                <Button
-                  fullWidth
-                  variant="outline"
-                  onClick={onClose}
-                >
-                  Continue Shopping
-                </Button>
+                <Link href="/products" className="block">
+                  <Button
+                    fullWidth
+                    variant="outline"
+                  >
+                    Continue Shopping
+                  </Button>
+                </Link>
                 <button
                   onClick={clearCart}
                   className="w-full text-sm text-red-600 hover:text-red-700 font-medium"
@@ -118,7 +185,7 @@ function CartItemComponent({
   onQuantityChange, 
   onRemove 
 }: { 
-  item: CartItem
+  item: CartItemDisplay
   onQuantityChange: (quantity: number) => void
   onRemove: () => void
 }) {
@@ -136,34 +203,58 @@ function CartItemComponent({
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Product Image */}
-          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-            {item.product.images[0] ? (
-              <img
-                src={item.product.images[0]}
-                alt={item.product.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                No Image
-              </div>
-            )}
-          </div>
+          <Link href={`/products/${item.product.id}`}>
+            <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer">
+              {(() => {
+                const primaryImage = item.product.primaryImageUrl;
+                if (primaryImage) return primaryImage;
+                
+                if (item.product.images && item.product.images.length > 0) {
+                  const firstImage = item.product.images[0];
+                  if (typeof firstImage === 'string') return firstImage;
+                  if (typeof firstImage === 'object' && firstImage.url) return firstImage.url;
+                }
+                
+                return null;
+              })() ? (
+                <Image
+                  src={(() => {
+                    const primaryImage = item.product.primaryImageUrl;
+                    if (primaryImage) return primaryImage;
+                    
+                    if (item.product.images && item.product.images.length > 0) {
+                      const firstImage = item.product.images[0];
+                      if (typeof firstImage === 'string') return firstImage;
+                      if (typeof firstImage === 'object' && firstImage.url) return firstImage.url;
+                    }
+                    
+                    return '/placeholder-image.jpg'; // fallback image
+                  })()}
+                  alt={item.product.name}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                  No Image
+                </div>
+              )}
+            </div>
+          </Link>
 
           {/* Product Info */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-gray-900 text-sm line-clamp-2">
-              {item.product.name}
-            </h3>
+            <Link href={`/products/${item.product.id}`}>
+              <h3 className="font-medium text-gray-900 text-sm line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer">
+                {item.product.name}
+              </h3>
+            </Link>
             
-            {/* Variant attributes */}
-            {Object.keys(item.variant.attributes).length > 0 && (
+            {/* Variant attributes - handle both old and new structure */}
+            {item.variant.attributes && Object.keys(item.variant.attributes).length > 0 && (
               <div className="text-xs text-gray-500 mt-1">
-                {Object.entries(item.variant.attributes).map(([key, value]) => (
-                  <span key={key} className="mr-2">
-                    {key}: {value}
-                  </span>
-                ))}
+                {formatVariantAttributes(item.variant.attributes)}
               </div>
             )}
 
@@ -184,11 +275,12 @@ function CartItemComponent({
                   <Input
                     type="number"
                     min="1"
-                    max={item.variant.stock}
+                    max={item.variant.stockQty || item.variant.stock || 999}
                     value={quantity}
                     onChange={(e) => {
                       const value = parseInt(e.target.value)
-                      if (value >= 1 && value <= item.variant.stock) {
+                      const maxStock = item.variant.stockQty || item.variant.stock || 999
+                      if (value >= 1 && value <= maxStock) {
                         handleQuantityUpdate(value)
                       }
                     }}
@@ -196,7 +288,7 @@ function CartItemComponent({
                   />
                   <button
                     onClick={() => handleQuantityUpdate(quantity + 1)}
-                    disabled={quantity >= item.variant.stock}
+                    disabled={quantity >= (item.variant.stockQty || item.variant.stock || 999)}
                     className="p-1 hover:bg-gray-50 text-gray-500 disabled:opacity-50"
                   >
                     <Plus className="w-3 h-3" />
@@ -225,15 +317,17 @@ function CartItemComponent({
   )
 }
 
-function EmptyCart({ onClose }: { onClose: () => void }) {
+function EmptyCart() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center">
       <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
       <h3 className="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
       <p className="text-gray-500 mb-6">Add some products to get started!</p>
-      <Button onClick={onClose}>
-        Continue Shopping
-      </Button>
+      <Link href="/products">
+        <Button>
+          Continue Shopping
+        </Button>
+      </Link>
     </div>
   )
 }

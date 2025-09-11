@@ -1,10 +1,15 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { useMemo, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useProducts } from '@/hooks/useProducts'
 import { useBrands } from '@/hooks/useBrands'
+import { useCartStore } from '@/stores/cart'
+import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
+import { Product } from '@/types'
 import HeroSection_2 from '../homepage/HeroSection_2'
 
 export default function GlamProductListPage() {
@@ -15,6 +20,11 @@ export default function GlamProductListPage() {
   const [page, setPage] = useState(1)
   const perPage = 8
 
+  // Cart and auth hooks
+  const { addItem } = useCartStore()
+  const { token } = useAuthStore()
+  const { showToast } = useToastStore()
+
   // Fetch products từ API - không filter theo brand để tránh spam API
   const { products, loading: productsLoading, error: productsError } = useProducts({
     categoryId: selectedCategoryId?.toString(),
@@ -24,6 +34,25 @@ export default function GlamProductListPage() {
 
   // Fetch brands từ API
   const { brands: availableBrands, loading: brandsLoading } = useBrands()
+
+  // Handle add to cart
+  const handleAddToCart = async (product: Product) => {
+    try {
+      // Get the first available variant
+      const variant = product.variants?.[0];
+      if (!variant) {
+        showToast('Sản phẩm này chưa có biến thể có sẵn', 'error');
+        return;
+      }
+
+      await addItem(product, variant, 1, token || undefined);
+
+      showToast('Đã thêm sản phẩm vào giỏ hàng!', 'success');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      showToast('Có lỗi khi thêm sản phẩm vào giỏ hàng', 'error');
+    }
+  };
 
   // Tự động chọn brand đầu tiên khi brands load xong
   useEffect(() => {
@@ -261,30 +290,44 @@ export default function GlamProductListPage() {
                     className='group overflow-hidden rounded-2xl ring-1 ring-gray-200 bg-white'
                   >
                     <div className='relative'>
-                      <div className='relative h-60 w-full overflow-hidden'>
-                        <Image
-                          src={p.primaryImageUrl || p.images?.[0]?.url || '/images/placeholder-product.svg'}
-                          alt={p.name}
-                          fill
-                          className='object-cover transition-transform duration-500 group-hover:scale-[1.04]'
-                          sizes='(min-width: 768px) 50vw, 100vw'
-                        />
-                        <div className='pointer-events-none absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.08)]' />
-                        <div className='absolute left-2 top-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-white'>
-                          {p.category?.name || 'Sản phẩm'}
+                      <Link href={`/products/${p.id}`}>
+                        <div className='relative h-60 w-full overflow-hidden cursor-pointer'>
+                          <Image
+                            src={p.primaryImageUrl || p.images?.[0]?.url || '/images/placeholder-product.svg'}
+                            alt={p.name}
+                            fill
+                            className='object-cover transition-transform duration-500 group-hover:scale-[1.04]'
+                            sizes='(min-width: 768px) 50vw, 100vw'
+                          />
+                          <div className='pointer-events-none absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.08)]' />
+                          <div className='absolute left-2 top-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-white'>
+                            {p.category?.name || 'Sản phẩm'}
+                          </div>
                         </div>
-                      </div>
+                      </Link>
 
                       {/* hover actions */}
                       <div className='absolute inset-x-3 bottom-3 translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100'>
                         <div className='flex gap-2'>
-                          <button className='flex-1 rounded-full bg-black px-3 py-2 text-xs font-semibold text-white hover:bg-black/90'>Thêm vào giỏ</button>
-                          <button className='rounded-full bg-white/90 px-3 py-2 text-xs font-semibold ring-1 ring-gray-200 hover:bg-white'>Xem nhanh</button>
+                          <button 
+                            onClick={() => handleAddToCart(p)}
+                            className='flex-1 rounded-full bg-black px-3 py-2 text-xs font-semibold text-white hover:bg-black/90 transition-colors'
+                          >
+                            Thêm vào giỏ
+                          </button>
+                          <Link 
+                            href={`/products/${p.id}`}
+                            className='rounded-full bg-white/90 px-3 py-2 text-xs font-semibold ring-1 ring-gray-200 hover:bg-white transition-colors'
+                          >
+                            Xem nhanh
+                          </Link>
                         </div>
                       </div>
                     </div>
                     <div className='p-4'>
-                      <h3 className='line-clamp-1 text-sm font-semibold text-gray-900'>{p.name}</h3>
+                      <Link href={`/products/${p.id}`}>
+                        <h3 className='line-clamp-1 text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer'>{p.name}</h3>
+                      </Link>
                       <p className='mt-1 text-pink-600 font-bold'>
                         {p.minPrice !== undefined && p.minPrice !== null ? (
                           p.minPrice === p.maxPrice ? 

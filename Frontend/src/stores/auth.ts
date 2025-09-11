@@ -40,6 +40,16 @@ export const useAuthStore = create<AuthStore>()(
           
           const data = await response.json()
           set({ user: data.user, token: data.token, isLoading: false })
+          
+          // Try to sync cart after successful login
+          try {
+            const { useCartStore } = await import('./cart')
+            const { syncToServer } = useCartStore.getState()
+            await syncToServer(data.token)
+          } catch (error) {
+            console.warn('Failed to sync cart after login:', error)
+            // Don't throw error as login was successful
+          }
         } catch (error) {
           set({ isLoading: false })
           throw error
@@ -62,6 +72,16 @@ export const useAuthStore = create<AuthStore>()(
           
           const data = await response.json()
           set({ user: data.user, token: data.token, isLoading: false })
+          
+          // Try to sync cart after successful registration
+          try {
+            const { useCartStore } = await import('./cart')
+            const { syncToServer } = useCartStore.getState()
+            await syncToServer(data.token)
+          } catch (error) {
+            console.warn('Failed to sync cart after registration:', error)
+            // Don't throw error as registration was successful
+          }
         } catch (error) {
           set({ isLoading: false })
           throw error
