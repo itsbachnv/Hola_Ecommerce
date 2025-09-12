@@ -1,3 +1,12 @@
+import api from '@/utils/api';
+// Helper: build headers for ngrok
+function getApiHeaders(apiUrl: string, extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = extra ? { ...extra } : {};
+  if (apiUrl.includes('.ngrok-free.app')) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
+  return headers;
+}
 import { useState, useEffect, useRef } from 'react'
 import { Category } from '@/types'
 
@@ -17,13 +26,11 @@ export function useCategories() {
         setLoading(true)
         setError(null)
       
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/categories`)
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        
-        const result = await response.json()
+        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:5000';
+        const res = await api.get(`${apiUrl}/categories`, {
+          headers: getApiHeaders(apiUrl, { 'Content-Type': 'application/json' })
+        });
+        const result = res.data;
         
         // Handle different response formats
         let newCategories: Category[] = [];

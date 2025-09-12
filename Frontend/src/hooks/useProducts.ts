@@ -1,3 +1,12 @@
+// Helper: build headers for ngrok
+function getApiHeaders(apiUrl: string, extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = extra ? { ...extra } : {};
+  if (apiUrl.includes('.ngrok-free.app')) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
+  return headers;
+}
+import api from '@/utils/api';
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Product, ProductForm, ProductVariant } from '@/types'
 import { useAuthStore } from '@/stores/auth'
@@ -20,16 +29,14 @@ interface ProductsResponse {
   totalPages: number
 }
 
-// Helper function to get authenticated headers
-function getAuthHeaders(): HeadersInit {
-  const token = useAuthStore.getState().token
-  
-  const headers = {
+// Helper function to get authenticated headers (for axios)
+function getAuthHeaders(apiUrl: string): Record<string, string> {
+  const token = useAuthStore.getState().token;
+  const base: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
-  }
-  
-  return headers
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+  return getApiHeaders(apiUrl, base);
 }
 
 export function useProducts(filters: ProductFilters = {}) {
@@ -64,16 +71,10 @@ export function useProducts(filters: ProductFilters = {}) {
       }
 
       
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: getAuthHeaders()
-      })
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const result = await response.json()
+      const res = await api.get(apiUrl, {
+        headers: getAuthHeaders(apiUrl)
+      });
+      const result = res.data;
       
       // Check if result is the expected format
       if (result && typeof result === 'object') {
@@ -233,18 +234,10 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
       status: productData.status || 'ACTIVE'
     }
     
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(requestData)
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      toast.error(`${errorData.detail}`)
-    }
-    
-    const result = await response.json()
+    const res = await api.post(apiUrl, requestData, {
+      headers: getAuthHeaders(apiUrl)
+    });
+    const result = res.data;
     
     // Extract the created product
     let createdProduct
@@ -278,18 +271,13 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
           }
           
           
-          const createResponse = await fetch(variantsApiUrl, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(createVariantData)
-          })
-          
-          
-          if (!createResponse.ok) {
-            const errorData = await createResponse.json().catch(() => ({}))
-            toast.error(`Lỗi tạo biến thể ${i + 1}: ${errorData.detail || errorData.message || 'Unknown error'}`)
-          } else {
-            const result = await createResponse.json()
+          try {
+            const res = await api.post(variantsApiUrl, createVariantData, {
+              headers: getAuthHeaders(variantsApiUrl)
+            });
+            // Optionally check res.data for errors
+          } catch (error: any) {
+            toast.error(`Lỗi tạo biến thể ${i + 1}: ${error?.response?.data?.detail || error?.message || 'Unknown error'}`);
           }
         } catch (error) {
           toast.error(`Lỗi tạo biến thể ${i + 1}`)
@@ -390,18 +378,10 @@ export async function updateProduct(id: string, productData: ProductForm): Promi
       images: allImagesData
     }
     
-    const response = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(requestData)
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-    
-    const result = await response.json()
+    const res = await api.put(apiUrl, requestData, {
+      headers: getAuthHeaders(apiUrl)
+    });
+    const result = res.data;
     let updatedProduct: Product
     
     // Handle different response formats
@@ -443,17 +423,10 @@ export async function deleteProduct(id: string): Promise<void> {
     const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/products/${id}`
     
     
-    const response = await fetch(apiUrl, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-
-    toast.success('Xóa sản phẩm thành công')
+    await api.delete(apiUrl, {
+      headers: getAuthHeaders(apiUrl)
+    });
+    toast.success('Xóa sản phẩm thành công');
   } catch (error) {
     throw error
   }
@@ -473,19 +446,10 @@ export async function createVariant(variantData: {
   try {
     const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/variants`
     
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(variantData)
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-    
-    const result = await response.json()
-    return result
+    const res = await api.post(apiUrl, variantData, {
+      headers: getAuthHeaders(apiUrl)
+    });
+    return res.data;
   } catch (error) {
     throw error
   }
@@ -509,19 +473,10 @@ export async function updateVariant(id: string, variantData: {
       ...variantData
     }
     
-    const response = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(requestData)
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-    
-    const result = await response.json()
-    return result
+    const res = await api.put(apiUrl, requestData, {
+      headers: getAuthHeaders(apiUrl)
+    });
+    return res.data;
   } catch (error) {
     throw error
   }
@@ -532,27 +487,20 @@ export async function deleteVariant(id: string): Promise<void> {
   try {
     const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/variants/${id}`
     
-    const response = await fetch(apiUrl, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
+    await api.delete(apiUrl, {
+      headers: getAuthHeaders(apiUrl)
+    });
   } catch (error) {
     throw error
   }
 }
 
-// Helper function to get authenticated headers for FormData
-function getAuthHeadersForFormData(): HeadersInit {
-  const token = useAuthStore.getState().token
-  return {
-    ...(token && { 'Authorization': `Bearer ${token}` })
-    // Don't set Content-Type for FormData, let browser set it
-  }
+// Helper function to get authenticated headers for FormData (for axios)
+function getAuthHeadersForFormData(apiUrl: string): Record<string, string> {
+  const token = useAuthStore.getState().token;
+  const base: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+  // Don't set Content-Type for FormData, let browser set it
+  return getApiHeaders(apiUrl, base);
 }
 
 // Upload Product Image function
@@ -564,20 +512,11 @@ export async function uploadProductImage(productId: number, file: File, isPrimar
     formData.append('file', file)
     formData.append('isPrimary', isPrimary.toString())
     
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: getAuthHeadersForFormData(),
-      body: formData
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-    
-    const result = await response.json()
-    toast.success('Upload ảnh thành công')
-    return result // Should return the image URL
+    const res = await api.post(apiUrl, formData, {
+      headers: getAuthHeadersForFormData(apiUrl)
+    });
+    toast.success('Upload ảnh thành công');
+    return res.data; // Should return the image URL
   } catch (error) {
     throw error
   }
@@ -605,19 +544,10 @@ export async function uploadProductImages(productId: number, files: File[], prim
       formData.append('isPrimary', (index === primaryIndex).toString())
     })
     
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: getAuthHeadersForFormData(),
-      body: formData
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-    
-    const result = await response.json()
-    return result.urls || result // Should return array of image URLs
+    const res = await api.post(apiUrl, formData, {
+      headers: getAuthHeadersForFormData(apiUrl)
+    });
+    return res.data.urls || res.data; // Should return array of image URLs
   } catch (error) {
     // Fallback to individual uploads if batch upload fails
     const uploadPromises = files.map((file, index) => 
@@ -629,9 +559,9 @@ export async function uploadProductImages(productId: number, files: File[], prim
 
 // Convert blob URL to File (helper function)
 export async function blobUrlToFile(blobUrl: string, fileName: string = 'image.jpg'): Promise<File> {
-  const response = await fetch(blobUrl)
-  const blob = await response.blob()
-  return new File([blob], fileName, { type: blob.type })
+  const res = await api.get(blobUrl, { responseType: 'blob' });
+  const blob = res.data;
+  return new File([blob], fileName, { type: blob.type });
 }
 
 // Delete Product Image function
@@ -639,15 +569,9 @@ export async function deleteProductImage(productId: number, imageUrl: string): P
   try {
     const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/products/${productId}/images?url=${encodeURIComponent(imageUrl)}`
     
-    const response = await fetch(apiUrl, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
+    await api.delete(apiUrl, {
+      headers: getAuthHeaders(apiUrl)
+    });
   } catch (error) {
     throw error
   }
@@ -658,15 +582,9 @@ export async function setPrimaryImage(productId: number, imageUrl: string): Prom
   try {
     const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/products/${productId}/images/primary?url=${encodeURIComponent(imageUrl)}`
     
-    const response = await fetch(apiUrl, {
-      method: 'PATCH',
-      headers: getAuthHeaders()
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
+    await api.patch(apiUrl, {}, {
+      headers: getAuthHeaders(apiUrl)
+    });
   } catch (error) {
     throw error
   }

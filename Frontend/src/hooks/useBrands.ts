@@ -1,3 +1,12 @@
+import api from '@/utils/api';
+// Helper: build headers for ngrok
+function getApiHeaders(apiUrl: string, extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = extra ? { ...extra } : {};
+  if (apiUrl.includes('.ngrok-free.app')) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
+  return headers;
+}
 import { useState, useEffect } from 'react'
 import { Brand } from '@/types'
 
@@ -13,18 +22,10 @@ export function useBrands() {
         setError(null)
         
         const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:5000'
-        const response = await fetch(`${apiUrl}/brands`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const data = await response.json()
+        const res = await api.get(`${apiUrl}/brands`, {
+          headers: getApiHeaders(apiUrl, { 'Content-Type': 'application/json' })
+        });
+        const data = res.data;
         
         // Handle different response formats
         if (Array.isArray(data)) {

@@ -1,3 +1,12 @@
+import api from '@/utils/api';
+// Helper: build headers for ngrok
+function getApiHeaders(apiUrl: string, extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = extra ? { ...extra } : {};
+  if (apiUrl.includes('.ngrok-free.app')) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
+  return headers;
+}
 import { CartItem } from '@/types'
 
 interface AddToCartRequest {
@@ -25,78 +34,54 @@ export const cartApiService: CartApiService = {
       userId: userId || item.userId
     }
     
-    const response = await fetch(`${apiUrl}/carts/add`, {
-      method: 'POST',
-      headers: {
+    const res = await api.post(`${apiUrl}/carts/add`, requestBody, {
+      headers: getApiHeaders(apiUrl, {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(requestBody)
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Failed to add item to cart: ${response.statusText}`)
-    }
-    
-    return response.json()
+      })
+    });
+    return res.data;
   },
 
   async removeFromCart(productId: number, variantId: number, token: string) {
     const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:5000'
     
-    const response = await fetch(`${apiUrl}/carts/products/${productId}/variants/${variantId}`, {
-      method: 'DELETE',
-      headers: {
+    await api.delete(`${apiUrl}/carts/products/${productId}/variants/${variantId}`, {
+      headers: getApiHeaders(apiUrl, {
         'Authorization': `Bearer ${token}`
-      }
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Failed to remove item from cart: ${response.statusText}`)
-    }
-    
-    return true
+      })
+    });
+    return true;
   },
 
   async updateQuantity(productId: number, variantId: number, quantity: number, token: string) {
     const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:5000'
     
-    const response = await fetch(`${apiUrl}/carts/products/${productId}/variants/${variantId}/quantity`, {
-      method: 'PUT',
-      headers: {
+    const res = await api.put(`${apiUrl}/carts/products/${productId}/variants/${variantId}/quantity`, { quantity }, {
+      headers: getApiHeaders(apiUrl, {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ quantity })
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Failed to update quantity: ${response.statusText}`)
-    }
-    
-    // Don't try to parse JSON if response is empty
-    const text = await response.text()
-    return text ? JSON.parse(text) : true
+      })
+    });
+    return res.data ?? true;
   },
 
   async getCart(userId: number, token: string) {
     const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:5000'
     
-    const response = await fetch(`${apiUrl}/carts/${userId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
+    try {
+      const res = await api.get(`${apiUrl}/carts/${userId}`, {
+        headers: getApiHeaders(apiUrl, {
+          'Authorization': `Bearer ${token}`
+        })
+      });
+      return res.data;
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        return null;
       }
-    })
-    
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null // No cart found
-      }
-      throw new Error(`Failed to get cart: ${response.statusText}`)
+      throw new Error(`Failed to get cart: ${error?.message || 'Unknown error'}`);
     }
-    
-    return response.json()
   },
 
   async syncLocalCartToServer(localCart: CartItem[], token: string, userId?: number) {
@@ -109,7 +94,7 @@ export const cartApiService: CartApiService = {
     }))
     
     // Add each item to server cart
-    const promises = cartItems.map(item => this.addToCart(item, token, userId))
+  const promises = cartItems.map(item => this.addToCart(item, token, userId))
     
     try {
       await Promise.all(promises)
