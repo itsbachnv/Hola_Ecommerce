@@ -109,6 +109,7 @@ public class CartItem
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TotalPrice { get; set; }
+    public bool IsSelectedForCheckout { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public Cart Cart { get; set; } = default!;

@@ -21,7 +21,7 @@ public class UserRepository : IUserRepository
         _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public Task<User?> FindByEmailAsync(string email, CancellationToken ct = default) =>
-        _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == email, ct);
+        _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower(), ct);
 
     public Task<bool> EmailExistsAsync(string email, long? excludeId = null, CancellationToken ct = default) =>
         _db.Users.AnyAsync(u => u.Email == email && (excludeId == null || u.Id != excludeId), ct);

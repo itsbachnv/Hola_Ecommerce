@@ -258,7 +258,6 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
     
     // If we have variants in the form data, create them after product creation
     if (productData.variants && productData.variants.length > 0) {
-      console.log(`Creating ${productData.variants.length} variants for product ${createdProduct.id}`)
       const variantsApiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/variants`
       
       // Create all variants for the new product
@@ -278,7 +277,6 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
             attributes: variant.attributes || null
           }
           
-          console.log(`Creating variant ${i + 1}:`, createVariantData)
           
           const createResponse = await fetch(variantsApiUrl, {
             method: 'POST',
@@ -286,18 +284,14 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
             body: JSON.stringify(createVariantData)
           })
           
-          console.log(`Variant ${i + 1} response status:`, createResponse.status)
           
           if (!createResponse.ok) {
             const errorData = await createResponse.json().catch(() => ({}))
-            console.error(`Failed to create variant ${i + 1}:`, errorData)
             toast.error(`Lỗi tạo biến thể ${i + 1}: ${errorData.detail || errorData.message || 'Unknown error'}`)
           } else {
             const result = await createResponse.json()
-            console.log(`Successfully created variant ${i + 1}:`, result)
           }
         } catch (error) {
-          console.error(`Error creating variant ${i + 1}:`, error)
           toast.error(`Lỗi tạo biến thể ${i + 1}`)
         }
       }

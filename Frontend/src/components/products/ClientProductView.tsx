@@ -54,7 +54,7 @@ type Product = {
 export default function ClientProductView({ product }: { product: Product }) {
   const prefersReduced = useReducedMotion();
   const { addItem } = useCartStore();
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const { showToast } = useToastStore();
   const { setLoading, clearLoading } = useLoadingStore();
   
@@ -184,7 +184,8 @@ export default function ClientProductView({ product }: { product: Product }) {
         product as unknown as StoreProduct, 
         selectedVariant as unknown as StoreProductVariant, 
         quantity, 
-        token || undefined
+        token || undefined,
+        user?.id
       );
       
       // Show success toast
@@ -193,7 +194,6 @@ export default function ClientProductView({ product }: { product: Product }) {
         'success'
       );
     } catch (error) {
-      console.error('Error adding to cart:', error);
       showToast('Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng!', 'error');
     } finally {
       clearLoading();

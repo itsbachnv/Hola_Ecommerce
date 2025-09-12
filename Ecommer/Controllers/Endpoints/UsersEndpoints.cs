@@ -22,11 +22,30 @@ public static class UsersEndpoints
             return Results.Ok(result);
         }).RequireAuthorization("AdminPolicy");
 
-        g.MapPost("/", async (CreateUserCommand cmd, ISender m, CancellationToken ct) =>
+        // Register endpoint - public (không cần authorization)
+        g.MapPost("/", async (RegisterCommand cmd, ISender m, CancellationToken ct) =>
+        {
+            try
+            {
+                var dto = await m.Send(cmd, ct);
+                return Results.Created($"/users/{dto.Id}", dto);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        });
+        
+        // Admin-only endpoint to create users with custom roles
+        g.MapPost("/admin/create", async (CreateUserCommand cmd, ISender m, CancellationToken ct) =>
         {
             var dto = await m.Send(cmd, ct);
             return Results.Created($"/users/{dto.Id}", dto);
-        }).RequireAuthorization("AdminPolicy");;
+        }).RequireAuthorization("AdminPolicy");
         
         g.MapPost("/login", async (LoginCommand cmd, ISender m, CancellationToken ct) =>
         {

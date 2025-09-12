@@ -413,7 +413,7 @@ export interface LoginForm {
 }
 
 export interface RegisterForm {
-  name: string
+  name: string // Will be mapped to fullName in API
   email: string
   password: string
   confirmPassword: string

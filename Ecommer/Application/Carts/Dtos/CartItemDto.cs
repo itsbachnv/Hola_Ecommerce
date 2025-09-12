@@ -8,8 +8,10 @@ public record CartItemDto(
     int Quantity,
     decimal UnitPrice,
     decimal TotalPrice,
+    bool IsSelectedForCheckout,
     DateTimeOffset CreatedAt,
     string ProductName,
     string? VariantName,
-    string? ProductImage
+    string? ProductImage,
+    object? Attributes
 );

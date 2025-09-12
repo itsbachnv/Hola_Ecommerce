@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { useAuth } from '@/stores/auth'
+import { useAuth, useAuthStore } from '@/stores/auth'
 import { useRouter } from 'next/navigation'
 import ClientOnlyMotion from '@/components/ui/ClientOnlyMotion'
 
@@ -13,16 +13,15 @@ export default function GlamLogin() {
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [remember, setRemember] = useState(true)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { setUser, setToken } = useAuth()
+  const { login, isLoading, user } = useAuth()
   const router = useRouter()
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Very basic validation for demo
+    // Basic validation
     const emailOk = /.+@.+\..+/.test(email);
     if (!emailOk || password.length < 6) {
       setError(!emailOk ? 'Please enter a valid email address.' : 'Password must be at least 6 characters.');
@@ -30,53 +29,18 @@ export default function GlamLogin() {
     }
 
     try {
-      setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, remember }),
-      });
+      await login(email, password);
       
-      let data;
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
+      // Clear guest session data after successful login
+      localStorage.removeItem('guestId');
       
-      if (!res.ok) {
-        setError(data.detail || data.message || 'Login failed. Please try again.');
-        return;
-      }
+      // Show success toast
+      toast.success(`Welcome back!`);
       
-      if (data.token && data.success) {
-        // Create user object from backend response
-        const user = {
-          id: Math.random().toString(36), // Backend doesn't return user ID, generate temporary one
-          name: data.fullName || data.FullName || email.split('@')[0],
-          email: email,
-          role: data.role || data.Role || 'Customer',
-          phone: '',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        // Store token and user in localStorage (for persistence)
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(user));
-        
-        // Update auth store
-        setUser(user);
-        setToken(data.token);
-        
-        // Show success toast
-        toast.success(`Welcome back, ${user.name}!`);
-        
-        // Redirect based on user role
-        switch (user.role) {
+      // Redirect based on user role  
+      setTimeout(() => {
+        const { user: currentUser } = useAuthStore.getState();
+        switch (currentUser?.role) {
           case 'Admin':
           case 'Staff':
             router.push('/dashboard');
@@ -86,13 +50,10 @@ export default function GlamLogin() {
             router.push('/products');
             break;
         }
-      } else {
-        setError('Login failed. Please try again.');
-      }
-    } catch {
-      setError('Login failed. Please try again.');
-    } finally {
-      setLoading(false);
+      }, 100)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.'
+      setError(errorMessage);
     }
   }
 
@@ -176,10 +137,10 @@ export default function GlamLogin() {
               {/* Submit */}
               <button
                 type='submit'
-                disabled={loading}
+                disabled={isLoading}
                 className='w-full rounded-full bg-black py-3 font-semibold text-white transition hover:bg-black/90 disabled:opacity-60 disabled:cursor-not-allowed'
               >
-                {loading ? 'Logging in…' : 'Login'}
+                {isLoading ? 'Logging in…' : 'Login'}
               </button>
             </form>
 

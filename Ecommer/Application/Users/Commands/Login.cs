@@ -36,7 +36,8 @@ public class LoginHandler : IRequestHandler<LoginCommand, LoginResultDto>
             Token = accessToken,
             FullName = user.FullName ?? user.Email,
             refreshToken = refreshToken,
-            Role = user.Role
+            Role = user.Role,
+            UserId = user.Id
         };
     }
 

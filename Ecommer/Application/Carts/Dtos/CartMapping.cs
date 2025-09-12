@@ -25,9 +25,12 @@ public static class CartMapping
             item.Quantity,
             item.UnitPrice,
             item.TotalPrice,
+            item.IsSelectedForCheckout,
             item.CreatedAt,
             item.Product?.Name ?? string.Empty,
             item.Variant?.Name,
-            item.Product?.Images?.FirstOrDefault()?.Url
+            item.Product?.Images?.FirstOrDefault()?.Url,
+            // Map variant attributes (JsonDocument) to a regular object for JSON serialization
+            item.Variant?.Attributes != null ? (object)System.Text.Json.JsonSerializer.Deserialize<object>(item.Variant.Attributes.RootElement.GetRawText() ?? "null") : null
         );
 }

@@ -30,7 +30,24 @@ export function formatDate(date: string | Date): string {
       hour: '2-digit',
       minute: '2-digit',
     }).format(dateObj)
-  } catch (error) {
+  } catch {
     return 'Invalid Date'
   }
+}
+
+// Generate a unique guest ID for unauthenticated users
+export function generateGuestId(): string {
+  return `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+}
+
+// Get or create guest ID from localStorage
+export function getGuestId(): string {
+  if (typeof window === 'undefined') return generateGuestId()
+  
+  let guestId = localStorage.getItem('guestId')
+  if (!guestId) {
+    guestId = generateGuestId()
+    localStorage.setItem('guestId', guestId)
+  }
+  return guestId
 }

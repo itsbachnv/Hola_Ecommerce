@@ -9,4 +9,10 @@ public record CartDto(
     List<CartItemDto> Items,
     decimal TotalAmount,
     int TotalItems
-);
+)
+{
+    // Calculated properties for selected items only
+    public decimal SelectedItemsTotalAmount => Items.Where(i => i.IsSelectedForCheckout).Sum(i => i.TotalPrice);
+    public int SelectedItemsCount => Items.Where(i => i.IsSelectedForCheckout).Sum(i => i.Quantity);
+    public List<CartItemDto> SelectedItems => Items.Where(i => i.IsSelectedForCheckout).ToList();
+};

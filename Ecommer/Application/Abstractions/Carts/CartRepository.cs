@@ -21,7 +21,19 @@ public class CartRepository : ICartRepository
                 .ThenInclude(i => i.Product)
             .Include(c => c.Items)
                 .ThenInclude(i => i.Variant)
-            .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == "ACTIVE", cancellationToken);
+            .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == "Active", cancellationToken);
+    }
+
+    public async Task<Cart?> GetCartByUserIdAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Carts
+            .Include(c => c.Items)
+                .ThenInclude(i => i.Product)
+            .Include(c => c.Items)
+                .ThenInclude(i => i.Variant)
+            .Include(c=>c.Items)
+            .ThenInclude(i => i.Product.Images)
+            .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == "Active", cancellationToken);
     }
 
     public async Task<Cart?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -60,6 +72,20 @@ public class CartRepository : ICartRepository
             .FirstOrDefaultAsync(i => i.CartId == cartId && 
                                i.ProductId == productId && 
                                i.VariantId == variantId, cancellationToken);
+    }
+
+    public async Task<CartItem?> GetCartItemByIdAsync(long cartItemId, CancellationToken cancellationToken = default)
+    {
+        return await _context.CartItems
+            .Include(i => i.Product)
+                .ThenInclude(p => p.Images)
+            .Include(i => i.Variant)
+            .FirstOrDefaultAsync(i => i.Id == cartItemId, cancellationToken);
+    }
+
+    public void UpdateCartItem(CartItem item)
+    {
+        _context.CartItems.Update(item);
     }
     
     public void RemoveItem(CartItem item)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import Button from '@/components/ui/Button'
 import { useCartStore } from '@/stores/cart'
+import { useAuth } from '@/stores/auth'
 
 // Helper function to parse variant attributes (matching ClientProductView)
 const parseAttributes = (attributes: Record<string, unknown> | null | undefined): Record<string, string> => {
@@ -76,8 +77,18 @@ interface ShoppingCartProps {
 }
 
 export default function ShoppingCart({ isOpen, onCheckout }: ShoppingCartProps) {
-  const { cart, updateQuantity, removeItem, clearCart, getTotal, getItemCount } = useCartStore()
+  const { cart, updateQuantity, removeItem, clearCart, getTotal, getItemCount, loadCartFromServer } = useCartStore()
+  const { user, token, isAuthenticated } = useAuth()
   const router = useRouter()
+
+  // Load cart from server when component mounts and user is authenticated
+  useEffect(() => {
+    if (isOpen && isAuthenticated && user && token) {
+      loadCartFromServer(token, user.id)
+        .catch(error => {
+        })
+    }
+  }, [isOpen, isAuthenticated, user, token, loadCartFromServer])
 
   if (!isOpen) return null
 
@@ -85,11 +96,11 @@ export default function ShoppingCart({ isOpen, onCheckout }: ShoppingCartProps) 
     router.push('/products')
   }
 
-  const handleQuantityChange = (itemId: string, newQuantity: number) => {
+  const handleQuantityChange = async (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      removeItem(itemId)
+      await removeItem(itemId, token || undefined, user?.id)
     } else {
-      updateQuantity(itemId, newQuantity)
+      await updateQuantity(itemId, newQuantity, token || undefined, user?.id)
     }
   }
 
@@ -132,7 +143,7 @@ export default function ShoppingCart({ isOpen, onCheckout }: ShoppingCartProps) 
                     key={item.id}
                     item={item}
                     onQuantityChange={(quantity) => handleQuantityChange(item.id, quantity)}
-                    onRemove={() => removeItem(item.id)}
+                    onRemove={() => removeItem(item.id, token || undefined, user?.id)}
                   />
                 ))}
               </div>

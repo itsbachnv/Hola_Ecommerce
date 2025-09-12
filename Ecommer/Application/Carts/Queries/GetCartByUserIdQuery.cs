@@ -4,9 +4,19 @@ using MediatR;
 
 namespace Ecommer.Application.Carts.Queries;
 
-public record GetCartByUserIdQuery(long UserId) : IRequest<CartDto>;
+public record GetCartByUserIdQuery(long UserId) : IRequest<GetCartByUserIdResult>;
 
-public class GetCartByUserIdHandler : IRequestHandler<GetCartByUserIdQuery,CartDto>
+public class GetCartByUserIdResult
+{
+    public bool IsSuccess { get; set; }
+    public CartDto? Value { get; set; }
+    public string? ErrorMessage { get; set; }
+
+    public static GetCartByUserIdResult Success(CartDto cart) => new() { IsSuccess = true, Value = cart };
+    public static GetCartByUserIdResult Failure(string error) => new() { IsSuccess = false, ErrorMessage = error };
+}
+
+public class GetCartByUserIdHandler : IRequestHandler<GetCartByUserIdQuery, GetCartByUserIdResult>
 {
     private readonly ICartRepository _cartRepository;
 
@@ -15,13 +25,13 @@ public class GetCartByUserIdHandler : IRequestHandler<GetCartByUserIdQuery,CartD
         _cartRepository = cartRepository;
     }
 
-    public async Task<CartDto> Handle(GetCartByUserIdQuery request, CancellationToken cancellationToken)
+    public async Task<GetCartByUserIdResult> Handle(GetCartByUserIdQuery request, CancellationToken cancellationToken)
     {
-        var cart = await _cartRepository.GetActiveCartByUserIdAsync(request.UserId, cancellationToken);
+        var cart = await _cartRepository.GetCartByUserIdAsync(request.UserId, cancellationToken);
         
         if (cart == null)
-            throw new Exception("Cart not found");
+            return GetCartByUserIdResult.Failure("Cart not found");
 
-        return cart.ToDto();
+        return GetCartByUserIdResult.Success(cart.ToDto());
     }
 }

@@ -3,18 +3,23 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'next/navigation'
 
 export default function GlamRegister() {
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPw1, setShowPw1] = useState(false)
   const [showPw2, setShowPw2] = useState(false)
   const [agree, setAgree] = useState(true)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
   const prefersReduced = useReducedMotion()
+  
+  const { register, isLoading } = useAuthStore()
+  const router = useRouter()
 
   const strength = (() => {
     let s = 0
@@ -29,6 +34,9 @@ export default function GlamRegister() {
     e.preventDefault()
     setError(null)
     setOk(null)
+    
+    // Validation
+    if (!fullName.trim()) return setError('Please enter your full name.')
     const emailOk = /.+@.+\..+/.test(email)
     if (!emailOk) return setError('Please enter a valid email address.')
     if (password.length < 8) return setError('Password must be at least 8 characters.')
@@ -36,15 +44,22 @@ export default function GlamRegister() {
     if (!agree) return setError('You must agree to the Terms & Privacy.')
 
     try {
-      setLoading(true)
-      // TODO: Call your register API (NextAuth/credentials or custom endpoint)
-      await new Promise((r) => setTimeout(r, 900))
-      setOk('Account created! You can log in now.')
-      setEmail(''); setPassword(''); setConfirmPassword('')
-    } catch (e) {
-      setError('Registration failed. Please try again.')
-    } finally {
-      setLoading(false)
+      await register(fullName, email, password)
+      setOk('Account created successfully! You can now log in.')
+      // Reset form
+      setFullName('')
+      setEmail('')
+      setPassword('')
+      setConfirmPassword('')
+      setAgree(true)
+      
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.'
+      setError(errorMessage)
     }
   }
 
@@ -67,6 +82,18 @@ export default function GlamRegister() {
             <h2 className='text-3xl md:text-4xl font-extrabold mb-8 text-center md:text-left'>Register</h2>
 
             <form onSubmit={onSubmit} className='space-y-4'>
+              <label className='block'>
+                <span className='sr-only'>Full name</span>
+                <input
+                  type='text'
+                  autoComplete='name'
+                  placeholder='Enter your full name *'
+                  className='w-full rounded-full px-5 py-3 outline-none ring-1 ring-gray-300 focus:ring-gray-400 bg-white/80'
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              </label>
+              
               <label className='block'>
                 <span className='sr-only'>Email address</span>
                 <input
@@ -148,10 +175,10 @@ export default function GlamRegister() {
               {/* Submit */}
               <button
                 type='submit'
-                disabled={loading}
+                disabled={isLoading}
                 className='w-full rounded-full bg-black py-3 font-semibold text-white transition hover:bg-black/90 disabled:opacity-60 disabled:cursor-not-allowed'
               >
-                {loading ? 'Registering…' : 'Register'}
+                {isLoading ? 'Registering…' : 'Register'}
               </button>
             </form>
           </div>

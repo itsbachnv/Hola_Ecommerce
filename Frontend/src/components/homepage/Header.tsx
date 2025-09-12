@@ -22,8 +22,12 @@ export default function GlamHeader({ promoText = 'Giảm thêm 10% cho tất c�
   const [show, setShow] = useState(true)
   const [categoriesOpen, setCategoriesOpen] = useState(false)
   const lastY = useRef(0)
-  const { isAuthenticated, user, logout } = useAuth()
+  const { isAuthenticated, user, logout, isInitialized } = useAuth()
   const { getItemCount } = useCartStore()
+  
+  // Debug auth state
+  useEffect(() => {
+  }, [isInitialized, isAuthenticated, user])
   
   // Get cart count from store
   const cartCount = getItemCount()
@@ -134,7 +138,11 @@ export default function GlamHeader({ promoText = 'Giảm thêm 10% cho tất c�
                 {isAuthenticated && <NotificationBell />}
 
                 {/* User/Login Button */}
-                {isAuthenticated ? (
+                {!isInitialized ? (
+                  <div className='grid h-10 w-10 place-items-center rounded-xl ring-1 ring-black/10'>
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                  </div>
+                ) : isAuthenticated ? (
                   <div className="flex items-center gap-2">
                     <Link 
                       href={user?.role === 'Admin' || user?.role === 'Staff' ? '/dashboard' : '/profile'} 

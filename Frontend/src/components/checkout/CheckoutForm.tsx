@@ -129,23 +129,9 @@ export default function CheckoutForm() {
         total: cart.total + 30000,
       };
 
-      console.log('Submitting order:', orderData);
 
       // Update loading message for API call
       setLoading(true, 'Đang gửi đơn hàng đến server...', 'updating');
-
-      // Here you would call your API to create the order
-      // If createAccount is true, the API should:
-      // 1. Create user account
-      // 2. Create order linked to new account
-      // 3. Return order details + login token
-      
-      // const response = await createOrder(orderData);
-      // if (response.token) {
-      //   // Auto login the newly created user
-      //   setToken(response.token);
-      //   setUser(response.user);
-      // }
 
       // Simulate API call with realistic timing
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -166,7 +152,6 @@ export default function CheckoutForm() {
       router.push('/order-success');
 
     } catch (error) {
-      console.error('Checkout error:', error);
       showToast('Có lỗi xảy ra khi đặt hàng', 'error');
     } finally {
       setIsSubmitting(false);

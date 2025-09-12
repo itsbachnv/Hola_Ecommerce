@@ -7,5 +7,7 @@
         public string? FullName { get; set; }
         public string refreshToken { get; set; }
         public string Role { get; set; }
+        
+        public long UserId { get; set; }
     }
 }

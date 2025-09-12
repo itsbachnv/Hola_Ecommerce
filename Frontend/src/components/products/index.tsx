@@ -23,7 +23,7 @@ export default function GlamProductListPage() {
 
   // Cart and auth hooks
   const { addItem } = useCartStore()
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const { showToast } = useToastStore()
   const { setLoading, clearLoading } = useLoadingStore()
 
@@ -49,11 +49,10 @@ export default function GlamProductListPage() {
         return;
       }
 
-      await addItem(product, variant, 1, token || undefined);
+      await addItem(product, variant, 1, token || undefined, user?.id);
 
       showToast('Đã thêm sản phẩm vào giỏ hàng!', 'success');
     } catch (error) {
-      console.error('Error adding to cart:', error);
       showToast('Có lỗi khi thêm sản phẩm vào giỏ hàng', 'error');
     } finally {
       clearLoading();
