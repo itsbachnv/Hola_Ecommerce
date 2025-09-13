@@ -124,7 +124,7 @@ export default function MiniCartPreview({ maxItems = 4 }: MiniCartPreviewProps) 
 
             {/* Product Info */}
             <div className="flex-1 min-w-0">
-              <Link href={`/products/${item.product.id}`}>
+              <Link href={`/products/${item.product.slug}`}>
                 <h4 className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 transition-colors cursor-pointer">
                   {item.product.name}
                 </h4>

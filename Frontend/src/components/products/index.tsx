@@ -295,7 +295,7 @@ export default function GlamProductListPage() {
                     className='group overflow-hidden rounded-2xl ring-1 ring-gray-200 bg-white'
                   >
                     <div className='relative'>
-                      <Link href={`/products/${p.id}`}>
+                      <Link href={`/products/${p.slug}`}>
                         <div className='relative h-60 w-full overflow-hidden cursor-pointer'>
                           <Image
                             src={p.primaryImageUrl || p.images?.[0]?.url || '/images/placeholder-product.svg'}
@@ -321,7 +321,7 @@ export default function GlamProductListPage() {
                             Thêm vào giỏ
                           </button>
                           <Link 
-                            href={`/products/${p.id}`}
+                            href={`/products/${p.slug}`}
                             className='rounded-full bg-white/90 px-3 py-2 text-xs font-semibold ring-1 ring-gray-200 hover:bg-white transition-colors'
                           >
                             Xem nhanh
@@ -330,7 +330,7 @@ export default function GlamProductListPage() {
                       </div>
                     </div>
                     <div className='p-4'>
-                      <Link href={`/products/${p.id}`}>
+                      <Link href={`/products/${p.slug}`}>
                         <h3 className='line-clamp-1 text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer'>{p.name}</h3>
                       </Link>
                       <p className='mt-1 text-pink-600 font-bold'>

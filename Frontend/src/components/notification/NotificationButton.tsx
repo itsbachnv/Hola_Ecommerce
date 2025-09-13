@@ -80,7 +80,6 @@ export function NotificationButton() {
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
-    if (!showList) return;
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowList(false);
@@ -93,8 +92,7 @@ export function NotificationButton() {
   useEffect(() => {
     const token = localStorage.getItem("token") || "";
     const userId = TokenUtils.getUserIdFromToken(token);
-    console.log("User ID from token:", userId);
-    if (!token || !userId) return;
+    if (!token || !userId) return; // Chỉ mở kết nối nếu đã login
 
     const connection = createNotificationConnection(token);
     connection.start().catch(console.error);
@@ -127,7 +125,7 @@ export function NotificationButton() {
     return () => {
       connection.stop();
     };
-  }, []);
+  }, [showList]);
 
   const handleClick = () => {
     setShowList((prev) => !prev);
@@ -222,56 +220,87 @@ export function NotificationButton() {
       <AnimatePresence>
         {showList && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-            className="absolute right-0 mt-3 w-80 bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-neutral-800 z-50 overflow-hidden"
+  initial={{ opacity: 0, y: -20 }}
+  animate={{ opacity: 1, y: 0 }}
+  exit={{ opacity: 0, y: -20 }}
+  transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+  className="absolute right-0 mt-3 w-96 rounded-2xl shadow-2xl z-50 overflow-hidden
+             bg-gradient-to-br from-white via-blue-50 to-indigo-50 
+             dark:from-neutral-900 dark:via-neutral-800 dark:to-blue-950
+             border border-blue-200/50 dark:border-blue-900/50"
+>
+  {/* Header */}
+  <div className="px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/50 
+                  flex items-center justify-between 
+                  bg-gradient-to-r from-blue-500/10 to-indigo-500/10
+                  dark:from-blue-900/30 dark:to-indigo-900/30">
+    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base flex items-center gap-2">
+      🔔 Thông báo
+    </h3>
+    <button
+      onClick={handleMarkAllAsRead}
+      className="text-xs px-3 py-1 rounded-full 
+                 bg-gradient-to-r from-blue-500 to-indigo-500 
+                 text-white shadow-sm
+                 hover:scale-105 hover:shadow-md transition-all"
+      disabled={notifications.every(n => n.isRead)}
+    >
+      Đánh dấu tất cả
+    </button>
+  </div>
+
+  {/* Danh sách */}
+  <div className="max-h-96 overflow-y-auto custom-scrollbar 
+                  bg-white/80 dark:bg-neutral-900/80 
+                  backdrop-blur-sm">
+    {notifications.length === 0 ? (
+      <div className="p-8 text-center">
+        <div className="w-16 h-16 rounded-full 
+                        bg-gradient-to-tr from-blue-100 to-indigo-200 
+                        dark:from-blue-900 dark:to-indigo-950
+                        flex items-center justify-center mx-auto mb-4">
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-blue-500 dark:text-indigo-400"
           >
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-neutral-800 flex items-center justify-between bg-gray-50 dark:bg-neutral-800">
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base">Thông báo</h3>
-              <button
-                onClick={handleMarkAllAsRead}
-                className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900 border border-blue-300 transition-colors"
-                disabled={notifications.every(n => n.isRead)}
-              >
-                Đánh dấu tất cả đã đọc
-              </button>
-            </div>
-            <div className="max-h-96 overflow-y-auto custom-scrollbar bg-white dark:bg-neutral-900">
-              {notifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <div className="w-16 h-16 bg-gray-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 dark:text-gray-600">
-                      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
-                  </div>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Không có thông báo mới</p>
-                </div>
-              ) : (
-                notifications.map((n) => (
-                  <div
-                    key={n.notificationId}
-                    onClick={() => handleNotificationClick(n)}
-                    className={`p-4 border-b border-gray-100 dark:border-neutral-800 cursor-pointer transition-all group 
-                      ${!n.isRead ? 'bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-500' : 'opacity-70'}
-                      hover:bg-blue-50 dark:hover:bg-neutral-800`}
-                  >
-                    <div className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 text-sm">
-                      {n.title}
-                    </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 line-clamp-2">
-                      {n.message}
-                    </div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      {new Date(n.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </motion.div>
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Không có thông báo mới</p>
+      </div>
+    ) : (
+      notifications.map((n) => (
+        <div
+          key={n.notificationId}
+          onClick={() => handleNotificationClick(n)}
+          className={`p-4 border-b border-gray-100 dark:border-neutral-800 cursor-pointer 
+                      transition-all group 
+                      ${!n.isRead
+                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-900 border-l-4 border-indigo-500'
+                        : 'bg-white/70 dark:bg-neutral-900/70'}
+                      hover:scale-[1.01] hover:shadow-sm`}
+        >
+          <div className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 text-sm">
+            {n.title}
+          </div>
+          <div className="text-xs text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 line-clamp-2">
+            {n.message}
+          </div>
+          <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 italic">
+            {new Date(n.createdAt).toLocaleString()}
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</motion.div>
+
         )}
       </AnimatePresence>
     </div>

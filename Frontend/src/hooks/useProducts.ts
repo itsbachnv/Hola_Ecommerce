@@ -316,7 +316,7 @@ export async function createProduct(productData: ProductForm): Promise<Product> 
         }
       }
     }
-    toast.success('Tạo sản phẩm thành công')
+  toast.success('Tạo sản phẩm thành công', { position: 'top-left' })
     return createdProduct
   } catch (error) {
     throw error
@@ -410,7 +410,7 @@ export async function updateProduct(id: string, productData: ProductForm): Promi
       } catch (error) {
       }
     }
-    toast.success('Cập nhật sản phẩm thành công')
+    toast.success('Cập nhật sản phẩm thành công', { position: 'top-left' })
     return updatedProduct
   } catch (error) {
     throw error
@@ -426,7 +426,7 @@ export async function deleteProduct(id: string): Promise<void> {
     await api.delete(apiUrl, {
       headers: getAuthHeaders(apiUrl)
     });
-    toast.success('Xóa sản phẩm thành công');
+    toast.success('Xóa sản phẩm thành công', { position: 'top-left' });
   } catch (error) {
     throw error
   }
@@ -515,7 +515,7 @@ export async function uploadProductImage(productId: number, file: File, isPrimar
     const res = await api.post(apiUrl, formData, {
       headers: getAuthHeadersForFormData(apiUrl)
     });
-    toast.success('Upload ảnh thành công');
+    toast.success('Upload ảnh thành công' , { position: 'top-left' });
     return res.data; // Should return the image URL
   } catch (error) {
     throw error

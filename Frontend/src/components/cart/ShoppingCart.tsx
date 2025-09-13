@@ -62,6 +62,7 @@ interface CartItemDisplay {
     name: string
     images?: Array<{ url: string } | string>
     primaryImageUrl?: string | null
+    slug: string
   }
   variant: {
     price: number
@@ -214,7 +215,7 @@ function CartItemComponent({
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Product Image */}
-          <Link href={`/products/${item.product.id}`}>
+          <Link href={`/products/${item.product.slug}`}>
             <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer">
               {(() => {
                 const primaryImage = item.product.primaryImageUrl;

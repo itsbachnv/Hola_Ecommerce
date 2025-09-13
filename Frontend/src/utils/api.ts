@@ -1,7 +1,12 @@
 import axios from 'axios';
+import https from 'https';
+
+const agent = new https.Agent({ rejectUnauthorized: false });
 
 // Create a shared axios instance
-const api = axios.create();
+const api = axios.create({
+  httpsAgent: agent,
+});
 
 // Interceptor: add ngrok header if request URL is ngrok
 api.interceptors.request.use(config => {

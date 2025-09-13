@@ -35,7 +35,7 @@ export default function FeaturedProducts() {
   };
 
   // Get the first 8 products for featured section
-  const featuredProducts = useMemo(() => products.slice(0, 8), [products]);
+  const featuredProducts = useMemo(() => products.slice(0, 6), [products]);
 
   return (
     <section className="bg-transparent py-16 px-4 md:px-16 lg:px-24">
