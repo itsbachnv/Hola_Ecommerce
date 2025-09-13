@@ -96,7 +96,6 @@ public static class AuthenticationRegistration
         }
     }
 
-    // ⭐ Handler cho phép truy cập anonymous
     public class AllowAnonymousHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
         public AllowAnonymousHandler(

@@ -1,69 +1,52 @@
 using Ecommer.Application.Abstractions;
 using Ecommer.Application.Abstractions.Notifications;
+using Ecommer.Application.Abstractions.Users;
 using Ecommer.Domain;
 using MediatR;
 
 namespace Ecommer.Application.Notifications.Commands;
 
 public record SendNotificationCommand(
-    string? Title,
-    string? Message,
-    string? Type,
-    string? MappingUrl,
-    string? RelatedObjectType,
-    long? RelatedObjectId,
-    IEnumerable<long> RecipientUserIds
-) : IRequest<long>;
+    int      UserId,
+    string?  Title,
+    string?  Message,
+    string?  Type,
+    int?     RelatedObjectId,
+    string? MappingUrl) : IRequest<Unit>;
 
-public class SendNotificationHandler : IRequestHandler<SendNotificationCommand, long>
+public class SendNotificationHandler : IRequestHandler<SendNotificationCommand, Unit>
 {
-    private readonly INotificationRepository _repo;
-    private readonly IAppNotificationPublisher _appNotificationPublisher;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public SendNotificationHandler(INotificationRepository repo, IAppNotificationPublisher appNotificationPublisher)
+    public SendNotificationHandler(IServiceScopeFactory scopeFactory)
     {
-        _repo = repo;
-        _appNotificationPublisher = appNotificationPublisher;
+        _scopeFactory = scopeFactory;
     }
 
-    public async Task<long> Handle(SendNotificationCommand cmd, CancellationToken ct)
+    public async Task<Unit> Handle(SendNotificationCommand c, CancellationToken ct)
     {
-        // 1) Tạo notification (metadata + content)
-        var notification = new Notification
+        using var scope = _scopeFactory.CreateScope();
+
+        var userRepo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        var notificationRepo = scope.ServiceProvider.GetRequiredService<INotificationsRepository>();
+
+        var userExists = await userRepo.FindAsync(c.UserId, ct);
+        if (userExists == null)
+            throw new KeyNotFoundException($"UserId {c.UserId} không tồn tại.");
+
+        var entity = new Notification
         {
-            Title = cmd.Title,
-            Message = cmd.Message,
-            Type = cmd.Type,
-            MappingUrl = cmd.MappingUrl,
-            RelatedObjectType = cmd.RelatedObjectType,
-            RelatedObjectId = cmd.RelatedObjectId,
-            CreatedAt = DateTime.UtcNow
+            UserId          = c.UserId,
+            Title           = c.Title,
+            Message         = c.Message,
+            NotificationType            = c.Type,
+            IsRead          = false,
+            CreatedAt       = DateTime.UtcNow,
+            RelatedObjectId = c.RelatedObjectId,
+            MappingUrl      = c.MappingUrl
         };
 
-        // 2) Thêm recipients (distinct để tránh trùng) – chưa lưu DB
-        foreach (var uid in cmd.RecipientUserIds.Distinct())
-        {
-            notification.Recipients.Add(new NotificationRecipient { UserId = uid });
-        }
-
-        // 3) Lưu DB (transaction nội bộ trong SaveChanges)
-        await _repo.AddAsync(notification, ct);
-        await _repo.SaveChangesAsync(ct);
-
-        // 4) Gửi realtime/push (nếu có, non-blocking best effort)
-        // Bạn có thể try/catch để không ảnh hưởng transaction
-        await _appNotificationPublisher.PublishAsync(
-            notification.Id,
-            notification.Title,
-            notification.Message,
-            notification.Type,
-            notification.MappingUrl,
-            notification.RelatedObjectType,
-            notification.RelatedObjectId,
-            notification.Recipients.Select(r => r.UserId),
-            ct
-        );
-
-        return notification.Id;
+        await notificationRepo.SendNotificationAsync(entity, ct);
+        return Unit.Value;
     }
 }

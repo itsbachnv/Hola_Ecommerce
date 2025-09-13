@@ -6,8 +6,10 @@ using Ecommer.Application.Abstractions.Notifications;
 using Ecommer.Application.Abstractions.Products;
 using Ecommer.Application.Abstractions.Users;
 using Ecommer.Application.Abstractions.Variants;
+using Ecommer.Application.Notifications.Commands;
 using Ecommer.Infrastructure;
-using Ecommer.Infrastructure.Notifications;
+using Infrastructure.Hubs;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 namespace Ecommer.Container.ServiceRegister;
 
@@ -28,7 +30,8 @@ public static class InfrastructureServiceRegistration
                 policy =>
                 {
                     policy.WithOrigins(
-                            "http://localhost:3000"
+                            "http://localhost:3000",
+                            "https://227cf21975e9.ngrok-free.app"
                         )
                         .AllowAnyHeader()
                         .AllowAnyMethod()
@@ -39,9 +42,10 @@ public static class InfrastructureServiceRegistration
         // Repositories
         services.AddSignalR();
 
+        services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+        
         services.AddScoped<IProductRepository, ProductRepository>();
-        services.AddScoped<INotificationRepository, NotificationRepository>();
-        services.AddScoped<IAppNotificationPublisher, SignalRAppNotificationPublisher>();
+        services.AddScoped<INotificationsRepository, NotificationsRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
@@ -49,6 +53,15 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IBrandRepository, BrandRepository>();
         services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<NotificationsRepository>();
+        
+        services.AddMemoryCache();
+        services.AddHttpClient();
+        services.AddSignalR()
+            .AddHubOptions<NotifyHub>(options =>
+            {
+                options.EnableDetailedErrors = true;
+            });
 
         return services;
     }

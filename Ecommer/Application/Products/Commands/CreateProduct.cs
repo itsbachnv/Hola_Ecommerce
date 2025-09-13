@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Ecommer.Application.Abstractions;
 using Ecommer.Application.Abstractions.Products;
 using Ecommer.Application.Abstractions.Users;
@@ -22,17 +23,25 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Produc
     private readonly IProductRepository _repo;
     private readonly IUserRepository _users;
     private readonly ISender _mediator;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public CreateProductHandler(IProductRepository repo, IUserRepository users, ISender mediator)
+    public CreateProductHandler(IProductRepository repo, IUserRepository users, ISender mediator, IHttpContextAccessor httpContextAccessor)
     {
         _repo = repo;
         _users = users;
         _mediator = mediator;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<ProductDto> Handle(CreateProductCommand c, CancellationToken ct)
     {
         // Rule nhẹ: slug unique
+        
+        var user = _httpContextAccessor.HttpContext?.User;
+        if (user == null)
+            throw new UnauthorizedAccessException("Phiên làm việc đã hết hạn");
+        var currentUserId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+        
         if (await _repo.SlugExistsAsync(c.Slug, null, ct))
             throw new InvalidOperationException("Slug đã tồn tại");
 
@@ -55,27 +64,20 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Produc
         
         try
         {
-            var adminIds = await _users.GetAdminUserIdsAsync(ct);
+            var message =
+                $"Đã tạo mới sản phẩm {entity.Slug} thành công.";
 
-            if (adminIds.Count > 0)
-            {
-                var title = "Sản phẩm mới đã được tạo";
-                var message = $"[{entity.Name}] đã được thêm vào catalog.";
-                var mappingUrl = $"/dashboard/products";
-
-                await _mediator.Send(new SendNotificationCommand(
-                    Title: title,
-                    Message: message,
-                    Type: "ProductCreated",
-                    MappingUrl: mappingUrl,
-                    RelatedObjectType: "Product",
-                    RelatedObjectId: entity.Id,
-                    RecipientUserIds: adminIds
-                ), ct);
-            }
+            await _mediator.Send(new SendNotificationCommand(
+                currentUserId,
+                "Tạo mới sản phẩm",
+                message,
+                "Xem chi tiết",
+                0, $"/dashboard/products"
+            ), ct);
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine(ex.Message);
         }
 
         return entity.ToDto();

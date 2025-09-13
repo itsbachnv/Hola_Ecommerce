@@ -2,8 +2,15 @@ using Ecommer.Domain;
 
 namespace Ecommer.Application.Abstractions.Notifications;
 
-public interface INotificationRepository
+public interface INotificationsRepository
 {
-    Task AddAsync(Notification entity, CancellationToken ct = default);
-    Task<int> SaveChangesAsync(CancellationToken ct = default);
+    Task<List<Notification>> GetAllNotificationsForUserAsync(int userId, CancellationToken cancellationToken);
+        
+    Task AddAsync(Notification notification, CancellationToken ct);
+
+    Task MarkAsSentAsync(int notificationId, CancellationToken ct);
+    Task MarkAllAsSentAsync(int userId, CancellationToken ct);
+
+    Task SendNotificationAsync(Notification notification, CancellationToken ct);
+    Task<int> CountUnreadNotificationsAsync(int userId, CancellationToken cancellationToken);
 }

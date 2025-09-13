@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/stores/auth'
-import NotificationBell from '@/components/ui/NotificationBell'
 import { 
   Home,
   Package,
@@ -19,6 +18,7 @@ import {
   Search,
   User
 } from 'lucide-react'
+import { NotificationButton } from '../notification/NotificationButton'
 
 
 interface SidebarItem {
@@ -204,7 +204,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
 
             <div className="flex items-center space-x-4">
-              <NotificationBell variant="admin" />
+              <NotificationButton/>
               
               <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                 <User className="w-4 h-4 text-gray-600" />

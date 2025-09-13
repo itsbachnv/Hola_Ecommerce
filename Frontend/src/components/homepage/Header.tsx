@@ -8,7 +8,7 @@ import { useAuth } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import { useCategories } from '@/hooks/useCategories'
 import { Category } from '@/types'
-import NotificationBell from '@/components/ui/NotificationBell'
+import { NotificationButton } from "@/components/notification/NotificationButton";
 import MiniCartPreview from '@/components/cart/MiniCartPreview'
 import React from 'react'
 
@@ -135,7 +135,7 @@ export default function GlamHeader({ promoText = 'Giảm thêm 10% cho tất c�
                 </div>
 
                 {/* Notification Bell - Only show when authenticated */}
-                {isAuthenticated && <NotificationBell />}
+                {isAuthenticated && <NotificationButton />}
 
                 {/* User/Login Button */}
                 {!isInitialized ? (

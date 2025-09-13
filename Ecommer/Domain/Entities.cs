@@ -20,6 +20,23 @@ public class User
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
+public class GuestInfo
+{
+    [Key]
+    public Guid GuestId { get; set; }
+
+    public string? Name { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string? Email { get; set; }
+    public string? IPAddress { get; set; }
+    public string? UserAgent { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime LastMessageAt { get; set; } = DateTime.Now;
+
+    public string Status { get; set; } = "new"; // "new" | "assigned" | "closed"
+}
+
 public class Brand
 {
     public long Id { get; set; }
@@ -268,46 +285,34 @@ public class IdempotencyKey
 
 public class ChatMessage
 {
-    public long Id { get; set; }
-    public long? UserId { get; set; }
-    public ChatRole Role { get; set; }
-    public string Content { get; set; } = default!;
-    public JsonDocument? Meta { get; set; }
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-
-    public User? User { get; set; }
+    public int Id { get; set; }
+    public string SenderId { get; set; }
+    public string ReceiverId { get; set; }
+    public string Message { get; set; }
+    public DateTime Timestamp { get; set; }
+    public bool IsRead { get; set; } = false;
 }
 
 public class Notification
 {
-    [Key] public long Id { get; set; }
+    [Key] public int NotificationId { get; set; }
+
+    [ForeignKey("User")] 
+    public long UserId { get; set; }
+    public User User { get; set; }
 
     [MaxLength(255)] public string? Title { get; set; }
+
     public string? Message { get; set; }
-    [MaxLength(50)] public string? Type { get; set; }
+
+    [MaxLength(50)]
+    public string? NotificationType { get; set; }
+
+    public bool IsRead { get; set; } = false;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Liên kết nghiệp vụ
-    public string? RelatedObjectType { get; set; }   // vd: "Order", "Appointment"
-    public long? RelatedObjectId { get; set; }
+    public int? RelatedObjectId { get; set; }
+
     public string? MappingUrl { get; set; }
-
-    // (tuỳ chọn) người gửi, phạm vi, v.v.
-    public long? SenderId { get; set; }
-
-    public ICollection<NotificationRecipient> Recipients { get; set; } = new List<NotificationRecipient>();
-}
-
-public class NotificationRecipient
-{
-    public long NotificationId { get; set; }
-    public Notification Notification { get; set; } = default!;
-
-    public long UserId { get; set; }
-    public User User { get; set; } = default!;
-
-    public bool IsRead { get; set; } = false;
-    public DateTime? ReadAt { get; set; }
-    public DateTime? DeliveredAt { get; set; } // tuỳ chọn: timestamp đã push/publish tới client
 }

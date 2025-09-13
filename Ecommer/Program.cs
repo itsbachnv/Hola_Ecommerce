@@ -1,7 +1,7 @@
 using Ecommer.Api.Endpoints;
 using Ecommer.Container.ServiceRegister;
 using Ecommer.Controllers.Endpoints;
-using Ecommer.Infrastructure.Notifications;
+using Infrastructure.Hubs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -71,6 +71,7 @@ app.MapCategories();
 app.MapCarts();
 app.MapBrands();
 app.MapNotifications();
-app.MapHub<NotificationsHub>("/hubs/notifications");
+app.MapHub<NotifyHub>("/notify");
+app.MapHub<ChatHub>("/chat");
 
 app.Run();

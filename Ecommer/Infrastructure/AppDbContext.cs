@@ -29,11 +29,9 @@ public class AppDbContext : DbContext
     public DbSet<StockReservation> StockReservations => Set<StockReservation>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<IdempotencyKey> IdempotencyKeys => Set<IdempotencyKey>();
+    public DbSet<GuestInfo> GuestInfos => Set<GuestInfo>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
-
-    // NEW: Notifications
     public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<NotificationRecipient> NotificationRecipients => Set<NotificationRecipient>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -223,44 +221,37 @@ public class AppDbContext : DbContext
             e.ToTable("idempotency_keys");
             e.HasIndex(p => new { p.Key, p.Scope }).IsUnique();
         });
+        
+        // ===== GuestInfo =====
+        mb.Entity<GuestInfo>(e =>
+        {
+            e.ToTable("guest_infos");
+            e.HasKey(p => p.GuestId);
+            e.Property(p => p.Status).HasMaxLength(20).HasDefaultValue("new");
+            e.Property(p => p.CreatedAt).HasDefaultValueSql("now()");
+            e.Property(p => p.LastMessageAt).HasDefaultValueSql("now()");
+            e.HasIndex(p => p.Email);
+            e.HasIndex(p => p.PhoneNumber);
+        });
 
+        // ===== ChatMessage =====
         mb.Entity<ChatMessage>(e =>
         {
             e.ToTable("chat_messages");
-            e.Property(p => p.Role).HasColumnType("chat_role");
-            e.Property(p => p.Meta).HasColumnType("jsonb");
-            e.HasOne(p => p.User).WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Message).IsRequired();
+            e.Property(p => p.Timestamp).HasDefaultValueSql("now()");
+            e.HasIndex(p => new { p.SenderId, p.ReceiverId });
         });
 
-        // ===== Notifications =====
+        // ===== Notification =====
         mb.Entity<Notification>(e =>
         {
             e.ToTable("notifications");
+            e.HasKey(p => p.NotificationId);
             e.Property(p => p.Title).HasMaxLength(255);
-            e.Property(p => p.Type).HasMaxLength(50);
-            e.Property(p => p.CreatedAt).HasDefaultValueSql("now()");
-            // gợi ý index theo thời gian tạo để sort nhanh
-            e.HasIndex(p => p.CreatedAt);
-        });
-
-        mb.Entity<NotificationRecipient>(e =>
-        {
-            e.ToTable("notification_recipients");
-            // Khóa chính tổng hợp: mỗi user chỉ có 1 bản ghi trên 1 notification
-            e.HasKey(r => new { r.NotificationId, r.UserId });
-
-            e.HasOne(r => r.Notification)
-             .WithMany(n => n.Recipients)
-             .HasForeignKey(r => r.NotificationId)
-             .OnDelete(DeleteBehavior.Cascade);
-
-            e.HasOne(r => r.User)
-             .WithMany()
-             .HasForeignKey(r => r.UserId)
-             .OnDelete(DeleteBehavior.Cascade);
-
-            // Index phục vụ truy vấn “unread by user”
-            e.HasIndex(r => new { r.UserId, r.IsRead });
+            e.Property(p => p.NotificationType).HasMaxLength(50);
+            e.HasIndex(p => p.CreatedAt); // sort nhanh theo thời gian tạo
         });
     }
 }
