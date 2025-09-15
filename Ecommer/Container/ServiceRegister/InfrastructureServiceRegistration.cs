@@ -50,6 +50,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
         services.AddScoped<IVariantRepository, VariantRepository>();
+        services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<IBrandRepository, BrandRepository>();
         services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<IJwtService, JwtService>();

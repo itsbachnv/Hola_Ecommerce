@@ -13,7 +13,7 @@ public class JwtService : IJwtService
         {
             _configuration = configuration;
         }
-        public string GenerateJWTToken(User user, string Role)
+        public string GenerateJWTToken(User user)
         {
             var key       = _configuration["Jwt:Key"]!;
             var issuer    = _configuration["Jwt:Issuer"];
@@ -26,7 +26,7 @@ public class JwtService : IJwtService
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Email ?? string.Empty),
-                new Claim(ClaimTypes.Role, Role),
+                new Claim(ClaimTypes.Role, user.Role ?? "Customer"),
                 new Claim(ClaimTypes.GivenName,   user.FullName ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };

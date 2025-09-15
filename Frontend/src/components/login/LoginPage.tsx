@@ -15,6 +15,7 @@ export default function GlamLogin() {
   const [remember, setRemember] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { login, isLoading, user } = useAuth()
+  const { loginWithGoogle, isLoading: isGoogleLoading } = useAuthStore()
   const router = useRouter()
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -35,7 +36,7 @@ export default function GlamLogin() {
       localStorage.removeItem('guestId');
       
       // Show success toast
-      toast.success(`Welcome back!`);
+      toast.success(`Welcome back! ${email}`);
       
       // Redirect based on user role  
       setTimeout(() => {
@@ -157,7 +158,7 @@ export default function GlamLogin() {
               <button
                 type='button'
                 className='inline-flex items-center justify-center gap-2 rounded-full border px-6 py-3 ring-1 ring-gray-200 hover:bg-gray-50'
-                aria-label='Sign in with Google'
+                aria-label='Sign in with Google' onClick={loginWithGoogle} disabled={isGoogleLoading}
               >
                 <Image src='/icons/googleIcon.png' alt='' width={20} height={20} />
                 Sign in with Google

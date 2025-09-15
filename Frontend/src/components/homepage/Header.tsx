@@ -17,6 +17,14 @@ type Props = {
 }
 
 export default function GlamHeader({ promoText = 'Giảm thêm 10% cho tất cả sản phẩm nhân ngày 2-9' }: Props) {
+  // Responsive: xác định có phải mobile không
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [show, setShow] = useState(true)
@@ -90,7 +98,7 @@ export default function GlamHeader({ promoText = 'Giảm thêm 10% cho tất c�
               </div>
 
               {/* Right: search + icons (desktop) */}
-              <div className='hidden md:flex items-center justify-end gap-4'>
+              <div className='flex items-center justify-end gap-4'>
                 <div className='relative'>
                   <input
                     type='search'
@@ -135,7 +143,7 @@ export default function GlamHeader({ promoText = 'Giảm thêm 10% cho tất c�
                 </div>
 
                 {/* Notification Bell - Only show when authenticated */}
-                {isAuthenticated && <NotificationButton />}
+                {isAuthenticated && !isMobile && <NotificationButton />}
 
                 {/* User/Login Button */}
                 {!isInitialized ? (
@@ -149,10 +157,20 @@ export default function GlamHeader({ promoText = 'Giảm thêm 10% cho tất c�
                       className='grid h-10 w-10 place-items-center rounded-xl ring-1 ring-black/10 hover:bg-black/5'
                       title={`Xin chào ${user?.fullName || user?.email}`}
                     >
-                      <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
-                        <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' />
-                        <circle cx='12' cy='7' r='4' />
-                      </svg>
+                      {user?.avatar ? (
+                        <Image
+                          src={user.avatar}
+                          alt="Avatar"
+                          width={40}
+                          height={40}
+                          className="rounded-full object-cover"
+                        />
+                      ) : (
+                        <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+                          <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' />
+                          <circle cx='12' cy='7' r='4' />
+                        </svg>
+                      )}
                     </Link>
                     <button 
                       onClick={logout}
@@ -247,8 +265,10 @@ export default function GlamHeader({ promoText = 'Giảm thêm 10% cho tất c�
                 <MobileLink href='/contact' onClick={() => setOpen(false)}>Liên Hệ</MobileLink>
                 <div className='my-2 border-t' />
                 <MobileLink href='/cart' onClick={() => setOpen(false)}>Giỏ Hàng ({cartCount})</MobileLink>
-                {isAuthenticated ? (
+                {/* NotificationButton ở mobile: hiện chữ "Thông báo" */}
+                {isAuthenticated && (
                   <div className="space-y-2">
+                    <NotificationButton label="Thông báo" />
                     <MobileLink 
                       href={user?.role === 'Admin' || user?.role === 'Staff' ? '/dashboard' : '/profile'} 
                       onClick={() => setOpen(false)}
@@ -265,9 +285,8 @@ export default function GlamHeader({ promoText = 'Giảm thêm 10% cho tất c�
                       Đăng Xuất
                     </button>
                   </div>
-                ) : (
-                  <MobileLink href='/login' onClick={() => setOpen(false)}>Đăng Nhập</MobileLink>
                 )}
+                {!isAuthenticated && <MobileLink href='/login' onClick={() => setOpen(false)}>Đăng Nhập</MobileLink>}
               </div>
             </motion.aside>
           </>

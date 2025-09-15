@@ -82,7 +82,7 @@ export default function MiniCartPreview({ maxItems = 4 }: MiniCartPreviewProps) 
         {displayItems.map((item) => (
           <div key={item.id} className="flex gap-3 p-3 border-b border-gray-50 last:border-b-0">
             {/* Product Image */}
-            <Link href={`/products/${item.product.id}`}>
+            <Link href={`/products/${item.product.slug}`}>
               <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer">
                 {(() => {
                   const primaryImage = item.product.primaryImageUrl;

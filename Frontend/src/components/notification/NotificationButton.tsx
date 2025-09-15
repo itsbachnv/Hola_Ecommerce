@@ -70,7 +70,7 @@ function mapTypeToRoute(type: string): string {
   return "/";
 }
 
-export function NotificationButton() {
+export function NotificationButton({ label }: { label?: string }) {
   const [showList, setShowList] = useState(false);
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [hasUnread, setHasUnread] = useState(false);
@@ -89,13 +89,63 @@ export function NotificationButton() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showList]);
 
+  // Singleton connection for notification
+  // @ts-ignore
+  if (!window.__notificationConnection) window.__notificationConnection = null;
+
+  // Singleton connection for notification
+  // @ts-expect-error
+  if (!window.__notificationConnection) window.__notificationConnection = null;
+
   useEffect(() => {
     const token = localStorage.getItem("token") || "";
     const userId = TokenUtils.getUserIdFromToken(token);
-    if (!token || !userId) return; // Chỉ mở kết nối nếu đã login
+    if (!token || !userId) return;
 
-    const connection = createNotificationConnection(token);
-    connection.start().catch(console.error);
+    // @ts-expect-error
+    let connection = window.__notificationConnection;
+    if (!connection) {
+      connection = createNotificationConnection(token);
+      // @ts-expect-error
+      window.__notificationConnection = connection;
+      connection.start().catch(console.error);
+    }
+
+    let stopped = false;
+
+    connection.on("ReceiveNotification", (notification: NotificationDto) => {
+      if (stopped) return;
+      // Khi nhận thông báo mới, luôn gọi lại API để refresh, không chỉ dùng cache
+      fetchNotifications(true);
+      setHasUnread(true);
+      audioRef.current?.play().catch(err => console.warn("Không thể phát âm thanh:", err));
+    });
+
+    return () => {
+      stopped = true;
+      connection.off("ReceiveNotification");
+    };
+  }, []);
+
+  // Only fetch notifications and unread count when user clicks notification button
+  const fetchNotifications = (forceRefresh = false) => {
+    const token = localStorage.getItem("token") || "";
+    const userId = TokenUtils.getUserIdFromToken(token);
+    if (!token || !userId) return;
+
+    // Use cache if available and not force refresh
+    if (!forceRefresh) {
+      const cached = localStorage.getItem('notification-cache');
+      if (cached) {
+        try {
+          const data = JSON.parse(cached);
+          if (Array.isArray(data)) {
+            setNotifications(data);
+            return;
+          }
+        } catch {}
+      }
+    }
 
     axios.get<NotificationDto[]>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications`, {
       headers: {
@@ -105,30 +155,27 @@ export function NotificationButton() {
     }).then(res => {
       const data = Array.isArray(res.data) ? res.data : [];
       setNotifications(data);
-
-      axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/unread-count/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "ngrok-skip-browser-warning": "true"
-        },
-      }).then((res) => {
-        if (res.data?.unreadCount > 0) setHasUnread(true);
-      });
+      localStorage.setItem('notification-cache', JSON.stringify(data));
     }).catch(console.error);
 
-    connection.on("ReceiveNotification", (notification: NotificationDto) => {
-      setNotifications((prev) => [notification, ...prev]);
-      setHasUnread(true);
-      audioRef.current?.play().catch(err => console.warn("Không thể phát âm thanh:", err));
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/unread-count/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true"
+      },
+    }).then((res) => {
+      if (res.data?.unreadCount > 0) setHasUnread(true);
     });
-
-    return () => {
-      connection.stop();
-    };
-  }, [showList]);
+  };
 
   const handleClick = () => {
-    setShowList((prev) => !prev);
+    setShowList((prev) => {
+      const next = !prev;
+      if (next) {
+        fetchNotifications();
+      }
+      return next;
+    });
     setHasUnread(false);
   };
 
@@ -145,6 +192,7 @@ export function NotificationButton() {
           },
         }
       );
+      fetchNotifications(true);
     } catch (err) {
       console.warn("Không thể đánh dấu đã đọc:", err);
     }
@@ -165,15 +213,8 @@ export function NotificationButton() {
 
     setShowList(false);
     router.push(route);
-
-    setNotifications((prev) =>
-      prev.map((n) =>
-        n.notificationId === notification.notificationId ? { ...n, isRead: true } : n
-      )
-    );
-
-    const unreadLeft = notifications.filter((n) => !n.isRead && n.notificationId !== notification.notificationId);
-    setHasUnread(unreadLeft.length > 0);
+    // Sau thao tác, luôn gọi lại API để refresh
+    fetchNotifications(true);
   };
 
     const handleMarkAllAsRead = async (): Promise<void> => {
@@ -193,21 +234,29 @@ export function NotificationButton() {
       );
       setNotifications((prev: NotificationDto[]) => prev.map((n: NotificationDto) => ({ ...n, isRead: true })));
       setHasUnread(false);
+      fetchNotifications(true);
     } catch {
       toast.error("Không thể đánh dấu tất cả đã đọc");
     }
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+  <div className="relative" ref={dropdownRef}>
       <audio ref={audioRef} src="/sound/inflicted-601.ogg" preload="auto" />
       <button
         onClick={handleClick}
-        className="relative grid h-10 w-10 place-items-center rounded-xl ring-1 ring-black/10 hover:bg-black/5 bg-white dark:bg-gray-900"
+        className={label
+          ? "block w-full text-left rounded-lg px-2 py-2 hover:bg-blue-50 text-blue-600 transition"
+          : "relative grid h-10 w-10 place-items-center rounded-xl ring-1 ring-black/10 hover:bg-black/5 bg-white dark:bg-gray-900"
+        }
         title="Thông báo"
       >
-        <Bell className="h-5 w-5 text-gray-500 dark:text-gray-300" />
-        {hasUnread && (
+        {label ? (
+          <span className="font-semibold uppercase tracking-wide">{label}</span>
+        ) : (
+          <Bell className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+        )}
+        {hasUnread && !label && (
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center animate-ping">
             <span className="absolute w-4 h-4 bg-red-500 rounded-full opacity-75"></span>
             <span className="relative text-[10px] text-white font-bold z-10">
@@ -217,92 +266,152 @@ export function NotificationButton() {
         )}
       </button>
 
-      <AnimatePresence>
-        {showList && (
-          <motion.div
-  initial={{ opacity: 0, y: -20 }}
-  animate={{ opacity: 1, y: 0 }}
-  exit={{ opacity: 0, y: -20 }}
-  transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-  className="absolute right-0 mt-3 w-96 rounded-2xl shadow-2xl z-50 overflow-hidden
-             bg-gradient-to-br from-white via-blue-50 to-indigo-50 
-             dark:from-neutral-900 dark:via-neutral-800 dark:to-blue-950
-             border border-blue-200/50 dark:border-blue-900/50"
->
-  {/* Header */}
-  <div className="px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/50 
-                  flex items-center justify-between 
-                  bg-gradient-to-r from-blue-500/10 to-indigo-500/10
-                  dark:from-blue-900/30 dark:to-indigo-900/30">
-    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base flex items-center gap-2">
-      🔔 Thông báo
-    </h3>
-    <button
-      onClick={handleMarkAllAsRead}
-      className="text-xs px-3 py-1 rounded-full 
-                 bg-gradient-to-r from-blue-500 to-indigo-500 
-                 text-white shadow-sm
-                 hover:scale-105 hover:shadow-md transition-all"
-      disabled={notifications.every(n => n.isRead)}
-    >
-      Đánh dấu tất cả
-    </button>
-  </div>
-
-  {/* Danh sách */}
-  <div className="max-h-96 overflow-y-auto custom-scrollbar 
-                  bg-white/80 dark:bg-neutral-900/80 
-                  backdrop-blur-sm">
-    {notifications.length === 0 ? (
-      <div className="p-8 text-center">
-        <div className="w-16 h-16 rounded-full 
-                        bg-gradient-to-tr from-blue-100 to-indigo-200 
-                        dark:from-blue-900 dark:to-indigo-950
-                        flex items-center justify-center mx-auto mb-4">
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="text-blue-500 dark:text-indigo-400"
-          >
-            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-        </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Không có thông báo mới</p>
-      </div>
-    ) : (
-      notifications.map((n) => (
-        <div
-          key={n.notificationId}
-          onClick={() => handleNotificationClick(n)}
-          className={`p-4 border-b border-gray-100 dark:border-neutral-800 cursor-pointer 
-                      transition-all group 
-                      ${!n.isRead
-                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-900 border-l-4 border-indigo-500'
-                        : 'bg-white/70 dark:bg-neutral-900/70'}
-                      hover:scale-[1.01] hover:shadow-sm`}
+<AnimatePresence>
+  {showList && (
+    <>
+      {/* Desktop dropdown */}
+      {typeof window !== "undefined" && window.innerWidth >= 768 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          className="absolute right-0 mt-3 w-96 rounded-2xl shadow-2xl z-50 overflow-hidden
+            bg-gradient-to-br from-white via-blue-50 to-indigo-50 
+            dark:from-neutral-900 dark:via-neutral-800 dark:to-blue-950
+            border border-blue-200/50 dark:border-blue-900/50"
         >
-          <div className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 text-sm">
-            {n.title}
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-blue-100/50 dark:border-blue-900/50 
+                          flex items-center justify-between 
+                          bg-gradient-to-r from-blue-500/10 to-indigo-500/10
+                          dark:from-blue-900/30 dark:to-indigo-900/30">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base flex items-center gap-2">
+              🔔 Thông báo
+            </h3>
+            <button
+              onClick={handleMarkAllAsRead}
+              className="text-xs px-3 py-1 rounded-full 
+                        bg-gradient-to-r from-blue-500 to-indigo-500 
+                        text-white shadow-sm
+                        hover:scale-105 hover:shadow-md transition-all"
+              disabled={notifications.every(n => n.isRead)}
+            >
+              Đánh dấu tất cả
+            </button>
           </div>
-          <div className="text-xs text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 line-clamp-2">
-            {n.message}
-          </div>
-          <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 italic">
-            {new Date(n.createdAt).toLocaleString()}
-          </div>
-        </div>
-      ))
-    )}
-  </div>
-</motion.div>
 
-        )}
-      </AnimatePresence>
+          {/* Danh sách */}
+          <div className="max-h-96 overflow-y-auto custom-scrollbar 
+                          bg-white/80 dark:bg-neutral-900/80 
+                          backdrop-blur-sm">
+            {notifications.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Không có thông báo mới
+                </p>
+              </div>
+            ) : (
+              notifications.map((n) => (
+                <div
+                  key={n.notificationId}
+                  onClick={() => handleNotificationClick(n)}
+                  className={`
+                    p-4 border-b border-gray-100 dark:border-neutral-800 cursor-pointer 
+                    transition-all group 
+                    ${!n.isRead
+                      ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-900 border-l-4 border-indigo-500'
+                      : 'bg-white/70 dark:bg-neutral-900/70'}
+                    hover:scale-[1.01] hover:shadow-sm
+                  `}
+                >
+                  <div
+                    className={`font-semibold text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400
+                      ${!n.isRead ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-800 dark:text-gray-200'}
+                    `}
+                  >
+                    {n.title}
+                  </div>
+                  <div
+                    className={`text-xs line-clamp-2
+                      ${!n.isRead ? 'text-gray-700 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'}
+                    `}
+                  >
+                    {n.message}
+                  </div>
+                  <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 italic">
+                    {new Date(n.createdAt).toLocaleString()}
+                  </div>
+                </div>
+
+              ))
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Mobile modal */}
+      {typeof window !== "undefined" && window.innerWidth < 768 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-neutral-900"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="font-bold">🔔 Thông báo</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={handleMarkAllAsRead}
+                disabled={notifications.every(n => n.isRead)}
+                className="text-xs px-3 py-1 rounded-full 
+                           bg-gradient-to-r from-blue-500 to-indigo-500 
+                           text-white shadow-sm"
+              >
+                Đánh dấu tất cả
+              </button>
+              <button
+                onClick={() => setShowList(false)}
+                className="text-xs px-3 py-1 rounded-full bg-gray-200 dark:bg-gray-700"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+
+          {/* Nội dung cuộn */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {notifications.length === 0 ? (
+              <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                Không có thông báo mới
+              </p>
+            ) : (
+              notifications.map((n) => (
+                <div
+                  key={n.notificationId}
+                  onClick={() => handleNotificationClick(n)}
+                  className={`p-4 mb-2 rounded-lg cursor-pointer 
+                              ${!n.isRead
+                                ? 'bg-blue-50 dark:bg-blue-900/30'
+                                : 'bg-gray-50 dark:bg-gray-800'}`}
+                >
+                  <div className="font-semibold text-sm">{n.title}</div>
+                  <div className="text-xs">{n.message}</div>
+                  <div className="text-[11px] text-gray-400 mt-1 italic">
+                    {new Date(n.createdAt).toLocaleString()}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </motion.div>
+      )}
+    </>
+  )}
+</AnimatePresence>
+
+
     </div>
   );
 }

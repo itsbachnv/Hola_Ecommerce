@@ -1,5 +1,5 @@
 'use client'
-
+import Image from 'next/image'
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -136,11 +136,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <nav className="mt-8">
           <div className="px-6 mb-6">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-gray-600" />
-              </div>
+              {user?.avatar ? (
+                <Image
+                  src={user.avatar}
+                  alt="Avatar"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                />
+              ) : (
+                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-gray-600" />
+                </div>
+              )}
               <div>
-                <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                <p className="text-sm font-medium text-gray-900">{user?.fullName}</p>
                 <p className="text-xs text-gray-500">{user?.role}</p>
               </div>
             </div>
@@ -206,9 +216,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="flex items-center space-x-4">
               <NotificationButton/>
               
-              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-gray-600" />
-              </div>
+              {user?.avatar ? (
+                <Image
+                  src={user.avatar}
+                  alt="Avatar"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                />
+              ) : (
+                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-gray-600" />
+                </div>
+              )}
             </div>
           </div>
         </header>

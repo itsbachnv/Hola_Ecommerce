@@ -10,7 +10,7 @@ export default async function ProductDetailPage({
 }: {
   params: { slug: string };
 }) {
-  const { slug } = params;
+  const { slug } = await params;
 
   const decodedSlug = decodeURIComponent(slug);
 

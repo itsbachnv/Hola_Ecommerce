@@ -5,7 +5,7 @@ namespace Ecommer.Application.Abstractions.Users;
 
 public interface IJwtService
 {
-    string GenerateJWTToken(User user, string Role);
+    string GenerateJWTToken(User user);
     string GenerateRefreshToken(string userId);
     ClaimsPrincipal? GetPrincipalFromExpiredToken(string token, bool isRefresh = false);
 }

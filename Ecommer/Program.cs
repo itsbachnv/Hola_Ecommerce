@@ -67,6 +67,7 @@ app.UseAuthorization();
 app.MapProducts();
 app.MapVariantsEndpoints();
 app.MapUsers();
+app.MapAuths();
 app.MapCategories();
 app.MapCarts();
 app.MapBrands();

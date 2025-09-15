@@ -9,6 +9,7 @@ interface AuthStore {
   isLoading: boolean
   isInitialized: boolean
   login: (email: string, password: string) => Promise<void>
+  loginWithGoogle: () => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => void
   setUser: (user: User | null) => void
@@ -153,13 +154,23 @@ export const useAuthStore = create<AuthStore>()(
           throw error
         }
       },
+
+      loginWithGoogle: async () => {
+        set({ isLoading: true })
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:5000'
+          window.location.href = `${apiUrl}/api/auth/login-google`;
+          set({ isLoading: false })
+        } catch (error) {}
+    },
       
       logout: () => {
         // Clear all user-related data
+        set({ isLoading: false })
         localStorage.removeItem('token')
         localStorage.removeItem('user')
         localStorage.removeItem('guestId')
-        
+        localStorage.removeItem('auth-storage')
         // Clear auth state
         set({ user: null, token: null })
         
@@ -185,7 +196,7 @@ export const useAuthStore = create<AuthStore>()(
         // Load user and token from localStorage on app start
         const token = localStorage.getItem('token')
         const userStr = localStorage.getItem('user')
-      
+        
         
         if (token && userStr) {
           try {

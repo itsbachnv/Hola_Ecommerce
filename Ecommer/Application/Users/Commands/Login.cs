@@ -27,7 +27,7 @@ public class LoginHandler : IRequestHandler<LoginCommand, LoginResultDto>
         var user = await GetUserAsync(request.Email, cancellationToken);
         ValidateUser(user, request.Password);
 
-        var accessToken = _jwtService.GenerateJWTToken(user, user.Role);
+        var accessToken = _jwtService.GenerateJWTToken(user);
         var refreshToken = _jwtService.GenerateRefreshToken(user.Id.ToString());
 
         return new LoginResultDto

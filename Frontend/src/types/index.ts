@@ -10,6 +10,7 @@ export interface User {
   meta?: Record<string, unknown> // Added meta field
   createdAt: string
   updatedAt: string
+  avatar?: string // Added avatar field
 }
 
 export interface Category {
