@@ -10,83 +10,91 @@ const AuthCallback = () => {
   const { setUser, setToken } = useAuthStore();
 
   useEffect(() => {
-    if (handled.current) return;
+    const handleAuth = async () => {
+      if (handled.current) return;
 
-    const query = new URLSearchParams(window.location.search);
+      const query = new URLSearchParams(window.location.search);
 
-    const token = query.get("token");
-  // const refreshToken = query.get("refreshToken"); // Not used
-    const fullName = query.get("fullName");
-    const userId = query.get("id") ? Number(query.get("id")) : 0;
-    const role = query.get("role");
-    const imageUrl = query.get("image");
+      const token = query.get("token");
+    // const refreshToken = query.get("refreshToken"); // Not used
+      const fullName = query.get("fullName");
+      const userId = query.get("id") ? Number(query.get("id")) : 0;
+      const role = query.get("role");
+      const imageUrl = query.get("image");
 
-      if (token) {
-        // Tạo user object giống login trong store
-        const user = {
-          id: userId,
-          email: '',
-          fullName: fullName || '',
-          role: role || 'Customer',
-          phone: '',
-          isActive: true,
-          meta: {},
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          avatar: imageUrl ?? ''
-        };
+        if (token) {
+          // Tạo user object giống login trong store
+          const user = {
+            id: userId,
+            email: '',
+            fullName: fullName || '',
+            role: role || 'Customer',
+            phone: '',
+            isActive: true,
+            meta: {},
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            avatar: imageUrl ?? ''
+          };
 
-        setUser(user);
-        setToken(token);
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.removeItem('guestId');
+          setUser(user);
+          setToken(token);
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(user));
+          localStorage.removeItem('guestId');
 
-        (async () => {
           try {
-            const { useCartStore } = await import('@/stores/cart');
-            const { loadCartFromServer, syncToServer } = useCartStore.getState();
-            const persisted = localStorage.getItem('cart-storage');
-            let guestCartHasItems = false;
+            const { useCartStore } = await import('../../stores/cart');
+            const { loadCartFromServer, syncToServer } = useCartStore.getState()
+
+            // Detect persisted guest cart under same persist key used by cart store
+            const persisted = localStorage.getItem('cart-storage')
+            let guestCartHasItems = false
             if (persisted) {
               try {
-                const parsed = JSON.parse(persisted);
-                const persistedCart = parsed?.state?.cart ?? parsed?.cart ?? null;
-                guestCartHasItems = !!(persistedCart && persistedCart.items && persistedCart.items.length > 0);
+                const parsed = JSON.parse(persisted)
+                // Zustand persist may store state directly or under `state` key
+                const persistedCart = parsed?.state?.cart ?? parsed?.cart ?? null
+                guestCartHasItems = !!(persistedCart && persistedCart.items && persistedCart.items.length > 0)
               } catch {
-                guestCartHasItems = false;
+                guestCartHasItems = false
               }
             }
-            const userIdNumber = user.id ? Number(user.id) : 0;
+
             if (guestCartHasItems) {
-              await syncToServer(token, userIdNumber);
-              await loadCartFromServer(token, userIdNumber);
+              // Sync guest cart to server first (merge into user's server cart), then reload server cart into local
+              await syncToServer(token, user.id)
+              await loadCartFromServer(token, user.id)
             } else {
-              await loadCartFromServer(token, userIdNumber);
+              // No guest cart -> just load server cart
+              await loadCartFromServer(token, user.id)
             }
-          } catch {}
-        })();
+          } catch {
+          }
 
-        toast.success(`Đăng nhập thành công! Xin chào ${fullName}`, {
-          position: 'top-left',
-          autoClose: 3000,
-        });
+          toast.success(`Đăng nhập thành công! Xin chào ${fullName}`, {
+            position: 'top-left',
+            autoClose: 3000,
+          });
 
-        handled.current = true;
+          handled.current = true;
 
-        if (role === 'Customer') {
-          router.push('/products');
-        } else if (role === 'Admin') {
-          router.push('/dashboard');
+          if (role === 'Customer') {
+            router.push('/products');
+          } else if (role === 'Admin') {
+            router.push('/dashboard');
+          } else {
+            router.push('/');
+          }
         } else {
+          toast.error('Đăng nhập thất bại!', {
+            position: 'top-left',
+          });
           router.push('/');
         }
-      } else {
-        toast.error('Đăng nhập thất bại!', {
-          position: 'top-left',
-        });
-        router.push('/');
-      }
+    };
+
+    handleAuth();
   }, [router, setUser, setToken]);
 
   return <div className="p-6 text-center">Đang xử lý đăng nhập...</div>;

@@ -46,12 +46,14 @@ export default function ProductManagement() {
   const { brands, loading: brandsLoading, error: brandsError } = useBrands()
   
   // Memoize filters to prevent unnecessary re-renders
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 5 // Số sản phẩm mỗi trang, có thể chỉnh
   const productFilters = useMemo(() => ({
     search: searchQuery,
     categoryId: selectedCategory,
-    page: 1,
-    pageSize: 50
-  }), [searchQuery, selectedCategory])
+    page: currentPage,
+    pageSize: pageSize
+  }), [searchQuery, selectedCategory, currentPage])
   
   const { products, pagination, loading: productsLoading, error: productsError, refetch } = useProducts(productFilters)
 
@@ -137,32 +139,29 @@ export default function ProductManagement() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              Thêm sản phẩm
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Tạo mới sản phẩm</DialogTitle>
-            </DialogHeader>
-            <ProductForm
-              onSubmit={(data) => {
-                handleCreateProduct(data)
-              }}
-              onCancel={() => setIsCreateModalOpen(false)}
-              categories={categories}
-              categoriesLoading={categoriesLoading}
-              brands={brands}
-              brandsLoading={brandsLoading}
-              brandsError={brandsError}
-              isSubmitting={isSubmitting}
-            />
-          </DialogContent>
-        </Dialog>
+      <div className="flex items-center justify-between mb-4">
+        <Button onClick={() => setIsCreateModalOpen((prev) => !prev)}>
+          {isCreateModalOpen ? 'Đóng thêm sản phẩm' : 'Thêm sản phẩm'}
+        </Button>
       </div>
+
+      {/* Product Form (Add New) - show as component, not modal */}
+      {isCreateModalOpen && (
+        <div className="mb-8">
+          <ProductForm
+            onSubmit={(data) => {
+              handleCreateProduct(data)
+            }}
+            onCancel={() => setIsCreateModalOpen(false)}
+            categories={categories}
+            categoriesLoading={categoriesLoading}
+            brands={brands}
+            brandsLoading={brandsLoading}
+            brandsError={brandsError}
+            isSubmitting={isSubmitting}
+          />
+        </div>
+      )}
 
       {/* Filters */}
       <Card>
@@ -227,7 +226,7 @@ export default function ProductManagement() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Tổng sản phẩm ({filteredProducts.length})
+            Tổng sản phẩm ({pagination?.total || filteredProducts.length})
             {productsLoading && <span className="text-sm text-gray-500 ml-2">Đang tải...</span>}
             {productsError && <span className="text-sm text-red-500 ml-2">Lỗi: {productsError}</span>}
           </CardTitle>
@@ -246,49 +245,82 @@ export default function ProductManagement() {
               <Button onClick={() => window.location.reload()}>Thử lại</Button>
             </div>
           ) : (
+            <>
             <div className="overflow-x-auto">
-            <table className="w-full border-collapse table-fixed">
-              <thead>
-                <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-80">Sản phẩm</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Danh mục</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-40">Khoảng giá bán</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Giá gốc</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-24">Tồn kho</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-28">Trạng thái</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Ngày tạo</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Hành động</th>
-              </tr>
+              <table className="w-full border-collapse table-fixed">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                  <th className="text-left py-4 px-4 font-semibold text-gray-900 w-80">Sản phẩm</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Danh mục</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-900 w-40">Khoảng giá bán</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Giá gốc</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-900 w-24">Tồn kho</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-900 w-28">Trạng thái</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Ngày tạo</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-900 w-32">Hành động</th>
+                </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.map((product) => (
+                    <ProductRow
+                      key={product.id}
+                      product={product}
+                      onEdit={() => {
+                        setSelectedProduct(product)
+                        setIsEditModalOpen(true)
+                      }}
+                      onDelete={() => openDeleteModal(product)}
+                      onToggleStatus={(status) => handleToggleStatus(String(product.id), status)}
+                    />
+                  ))}
+                </tbody>
+              </table>
 
-              </thead>
-              <tbody>
-                {filteredProducts.map((product) => (
-                  <ProductRow
-                    key={product.id}
-                    product={product}
-                    onEdit={() => {
-                      setSelectedProduct(product)
-                      setIsEditModalOpen(true)
-                    }}
-                    onDelete={() => openDeleteModal(product)}
-                    onToggleStatus={(status) => handleToggleStatus(String(product.id), status)}
-                  />
+              {filteredProducts.length === 0 && (
+                <div className="text-center py-12">
+                  <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy sản phẩm</h3>
+                  <p className="text-gray-600">
+                    {searchQuery || selectedCategory
+                      ? 'Không có sản phẩm nào phù hợp với bộ lọc của bạn.'
+                      : 'Bắt đầu bằng cách tạo sản phẩm đầu tiên của bạn.'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination Controls */}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                >
+                  Trang trước
+                </Button>
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
+                  <Button
+                    key={page}
+                    variant={page === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </Button>
                 ))}
-              </tbody>
-            </table>
-
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-12">
-                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy sản phẩm</h3>
-                <p className="text-gray-600">
-                  {searchQuery || selectedCategory
-                    ? 'Không có sản phẩm nào phù hợp với bộ lọc của bạn.'
-                    : 'Bắt đầu bằng cách tạo sản phẩm đầu tiên của bạn.'}
-                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === pagination.totalPages}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                >
+                  Trang sau
+                </Button>
               </div>
             )}
-            </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -1005,7 +1037,6 @@ function ProductForm({
                     : 'border-gray-200'
                 }`}
               />
-              
               {/* Primary image badge */}
               {index === primaryImageIndex && (
                 <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">

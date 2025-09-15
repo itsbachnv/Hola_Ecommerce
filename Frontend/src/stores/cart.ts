@@ -208,7 +208,12 @@ export const useCartStore = create<CartStore>()(
                 id: serverItem.productId,
                 name: serverItem.productName ?? 'Unknown product',
                 images: serverItem.productImage ? [{ url: serverItem.productImage }] : [],
-                primaryImageUrl: serverItem.productImage ?? null
+                primaryImageUrl: serverItem.productImage ?? null,
+                slug: serverItem.product && (serverItem.product as any).slug
+                  ? (serverItem.product as any).slug
+                  : (serverItem.productName
+                      ? serverItem.productName.toString().toLowerCase().replace(/\s+/g, '-')
+                      : 'unknown-product')
               } as unknown as Product
 
               // Preserve and normalize attributes if present. Server may return attributes in many shapes:

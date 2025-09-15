@@ -185,30 +185,15 @@ export function useProducts(filters: ProductFilters = {}) {
     }
   }, [filters])
 
-  // Add debounce to prevent spam API calls  
+  // Chỉ gọi API một lần khi mount hoặc khi filters thực sự thay đổi
+  const prevFiltersRef = useRef<ProductFilters | null>(null);
   useEffect(() => {
-    // Reset hasInitialFetch when filters change significantly
-    if (filters.categoryId || filters.brandId) {
-      hasInitialFetch.current = false
+    const isSame = prevFiltersRef.current && JSON.stringify(prevFiltersRef.current) === JSON.stringify(filters);
+    if (!isSame) {
+      fetchProducts();
+      prevFiltersRef.current = filters;
     }
-
-    // Only fetch if we have meaningful filters or haven't fetched yet
-    const shouldFetch = !hasInitialFetch.current || 
-                       filters.categoryId || 
-                       filters.brandId || 
-                       (filters.search && filters.search.length >= 2)
-    
-    if (!shouldFetch) {
-      return
-    }
-
-    const timeoutId = setTimeout(() => {
-      fetchProducts()
-      hasInitialFetch.current = true
-    }, filters.search && filters.search.length > 0 ? 500 : 100)
-
-    return () => clearTimeout(timeoutId)
-  }, [fetchProducts, filters.search, filters.categoryId, filters.brandId])
+  }, [fetchProducts, filters]);
 
   return {
     products,

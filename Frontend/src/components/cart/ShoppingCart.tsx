@@ -257,7 +257,7 @@ function CartItemComponent({
 
           {/* Product Info */}
           <div className="flex-1 min-w-0">
-            <Link href={`/products/${item.product.id}`}>
+            <Link href={`/products/${item.product.slug}`}>
               <h3 className="font-medium text-gray-900 text-sm line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer">
                 {item.product.name}
               </h3>
