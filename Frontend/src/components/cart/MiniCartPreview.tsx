@@ -213,12 +213,20 @@ export default function MiniCartPreview({ maxItems = 4 }: MiniCartPreviewProps) 
           >
             Xem giỏ hàng
           </Link>
+          {/* Disable checkout if no items selected */}
           <Link
-            href={{
+            href={selectedIds.length > 0 ? {
               pathname: '/checkout',
               query: { items: selectedIds.join(',') }
+            } : "#"}
+            className={`flex-1 text-center py-2 px-3 rounded-lg text-sm transition-colors ${selectedIds.length > 0 ? 'bg-black text-white hover:bg-gray-800' : 'bg-gray-300 text-gray-400 cursor-not-allowed'}`}
+            aria-disabled={selectedIds.length === 0}
+            tabIndex={selectedIds.length === 0 ? -1 : 0}
+            onClick={e => {
+              if (selectedIds.length === 0) {
+                e.preventDefault();
+              }
             }}
-            className="flex-1 text-center bg-black text-white py-2 px-3 rounded-lg text-sm hover:bg-gray-800 transition-colors"
           >
             Thanh toán
           </Link>

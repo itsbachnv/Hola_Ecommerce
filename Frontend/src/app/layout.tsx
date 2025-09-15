@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import ConditionalLayout from '@/components/layout/ConditionalLayout';
 import ToastContainer from '@/components/ui/ToastContainer';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: "Hola Ecommerce",
@@ -19,6 +20,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ConditionalLayout>
         <ToastContainer />
         <LoadingOverlay />
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places`}
+          strategy="beforeInteractive"
+        />
       </body>
     </html>
   );

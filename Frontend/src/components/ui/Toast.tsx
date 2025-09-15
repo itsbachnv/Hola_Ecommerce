@@ -28,7 +28,8 @@ export default function Toast({ message, type = 'success', duration = 3000, onCl
   if (!isMounted) return null;
 
   const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+  // Success: no icon, just green color. Error/info: keep icon.
+  const icon = type === 'success' ? null : type === 'error' ? '❌' : 'ℹ️';
 
   const toastElement = (
     <div
@@ -36,7 +37,7 @@ export default function Toast({ message, type = 'success', duration = 3000, onCl
         isVisible ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
       }`}
     >
-      <span className="text-lg">{icon}</span>
+      {icon && <span className="text-lg">{icon}</span>}
       <span className="font-medium">{message}</span>
       <button
         onClick={() => {

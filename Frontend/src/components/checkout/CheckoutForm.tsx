@@ -8,9 +8,17 @@ import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
 import { useLoadingStore } from '@/stores/loading';
 import Button from '@/components/ui/Button';
+import { getProvinces, getDistricts, Province, District } from '@/components/Address/provinces_districts';
 import LoadingButton from '@/components/ui/LoadingButton';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import axios from 'axios';
+import api from '@/utils/api';
+
+// Prop type cho danh sách sản phẩm đã chọn
+interface CheckoutFormProps {
+  items: any[];
+}
 
 interface CheckoutFormData {
   // Shipping Information
@@ -32,21 +40,37 @@ interface CheckoutFormData {
   
   // Additional
   notes?: string;
+  voucherCode?: string;
 }
 
-export default function CheckoutForm() {
+export default function CheckoutForm({ items }: CheckoutFormProps) {
+  const [selectedProvince, setSelectedProvince] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const provinces: Province[] = getProvinces();
+  const districts: District[] = selectedProvince ? getDistricts(selectedProvince) : [];
   const router = useRouter();
   const { cart, clearCart } = useCartStore();
+  // Không cần getCheckoutItems, dùng trực tiếp prop items truyền từ cha (chính là danh sách đang hiển thị ở CheckoutSummary)
   const { user, setUser, setToken } = useAuthStore();
   const { showToast } = useToastStore();
   const { setLoading, clearLoading } = useLoadingStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherApplied, setVoucherApplied] = useState(false);
+  const [voucherError, setVoucherError] = useState('');
+  // Danh sách mã giảm giá nổi bật
+  const featuredVouchers = [
+    { code: 'HOLAVIP', label: 'Giảm 10% cho khách VIP' },
+    { code: 'FREESHIP', label: 'Miễn phí vận chuyển' },
+    { code: 'SALE50', label: 'Giảm 50k cho đơn từ 500k' },
+  ];
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<CheckoutFormData>({
     defaultValues: {
       fullName: user?.fullName || '',
@@ -89,9 +113,11 @@ export default function CheckoutForm() {
       // Update loading message
       setLoading(true, 'Đang chuẩn bị thông tin đơn hàng...', 'saving');
 
-      // Prepare order data
+      // Dùng đúng danh sách sản phẩm đã chọn truyền từ prop
+      const subtotal = items.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
+      const shippingFee = 30000;
+      const total = subtotal + shippingFee;
       const orderData = {
-        // Customer info
         customerInfo: {
           fullName: data.fullName,
           phone: data.phone,
@@ -100,34 +126,38 @@ export default function CheckoutForm() {
           createAccount: !user && data.createAccount,
           password: !user && data.createAccount ? data.password : undefined,
         },
-        
-        // Shipping info
         shippingAddress: {
           address: data.address,
           district: data.district,
           city: data.city,
           postalCode: data.postalCode || '',
         },
-        
-        // Order items
-        items: cart.items.map(item => ({
+        items: items.map(item => ({
           productId: item.productId,
           variantId: item.variantId,
           quantity: item.quantity,
           price: item.variant.price,
         })),
-        
-        // Payment
         paymentMethod: data.paymentMethod,
-        
-        // Additional
         notes: data.notes || '',
-        
-        // Totals
-        subtotal: cart.total,
-        shippingFee: 30000, // 30k VND shipping fee
-        total: cart.total + 30000,
+        voucherCode: voucherApplied ? voucherCode : '',
+        subtotal,
+        shippingFee,
+        total,
       };
+
+      // Gọi API POST /checkout/order sử dụng api instance
+      try {
+        const response = await api.post('/checkout/order', orderData);
+        if (response.data && response.data.success) {
+          showToast('Đặt hàng thành công!', 'success');
+          router.push('/order-success');
+        } else {
+          showToast('Có lỗi xảy ra khi đặt hàng', 'error');
+        }
+      } catch (err) {
+        showToast('Có lỗi xảy ra khi đặt hàng', 'error');
+      }
 
 
       // Update loading message for API call
@@ -140,10 +170,8 @@ export default function CheckoutForm() {
       setLoading(true, 'Đang hoàn tất đơn hàng...', 'saving');
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Clear cart and redirect to success
-      clearCart();
-      
-      if (!user && data.createAccount) {
+  // Chuyển hướng sang trang thành công, không xóa giỏ hàng
+  if (!user && data.createAccount) {
         showToast('Tài khoản đã được tạo và đơn hàng đã được đặt thành công!', 'success');
       } else {
         showToast('Đặt hàng thành công!', 'success');
@@ -267,51 +295,49 @@ export default function CheckoutForm() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Địa chỉ *
-              </label>
-              <Input
-                {...register('address', { 
-                  required: 'Vui lòng nhập địa chỉ' 
-                })}
-                placeholder="Số nhà, tên đường"
-                className={errors.address ? 'border-red-500' : ''}
-              />
-              {errors.address && (
-                <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>
-              )}
-            </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tỉnh/Thành phố *</label>
+              <select
+                value={selectedProvince}
+                onChange={e => {
+                  setSelectedProvince(e.target.value);
+                  setSelectedDistrict('');
+                  const province = provinces.find(p => p.code === e.target.value);
+                  setValue('city', province ? province.name : '', { shouldValidate: true });
+                }}
+                className="w-full border rounded p-2 mb-4"
+              >
+                <option value="">Chọn tỉnh/thành phố</option>
+                {provinces.map(p => (
+                  <option key={p.code} value={p.code}>{p.name}</option>
+                ))}
+              </select>
+              {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city.message}</p>}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Quận/Huyện *
-              </label>
-              <Input
-                {...register('district', { 
-                  required: 'Vui lòng nhập quận/huyện' 
-                })}
-                placeholder="Quận/Huyện"
-                className={errors.district ? 'border-red-500' : ''}
-              />
-              {errors.district && (
-                <p className="mt-1 text-sm text-red-600">{errors.district.message}</p>
-              )}
-            </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quận/Huyện *</label>
+              <select
+                value={selectedDistrict}
+                onChange={e => {
+                  setSelectedDistrict(e.target.value);
+                  const district = districts.find(d => d.code === e.target.value);
+                  setValue('district', district ? district.name : '', { shouldValidate: true });
+                }}
+                className="w-full border rounded p-2 mb-4"
+                disabled={!selectedProvince}
+              >
+                <option value="">Chọn quận/huyện</option>
+                {districts.map(d => (
+                  <option key={d.code} value={d.code}>{d.name}</option>
+                ))}
+              </select>
+              {errors.district && <p className="mt-1 text-sm text-red-600">{errors.district.message}</p>}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tỉnh/Thành phố *
-              </label>
-              <Input
-                {...register('city', { 
-                  required: 'Vui lòng nhập tỉnh/thành phố' 
-                })}
-                placeholder="Tỉnh/Thành phố"
-                className={errors.city ? 'border-red-500' : ''}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ chi tiết *</label>
+              <input
+                {...register('address', { required: 'Vui lòng nhập địa chỉ chi tiết' })}
+                placeholder="Số nhà, tên đường..."
+                className={`w-full border rounded p-2 ${errors.address ? 'border-red-500' : ''}`}
               />
-              {errors.city && (
-                <p className="mt-1 text-sm text-red-600">{errors.city.message}</p>
-              )}
+              {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>}
             </div>
           </div>
         </CardContent>
@@ -383,7 +409,66 @@ export default function CheckoutForm() {
           </CardContent>
         </Card>
       )}
-
+      {/* Voucher Code - UI đẹp, chọn nhanh */}
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Mã giảm giá</h2>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {featuredVouchers.map(v => (
+              <button
+                key={v.code}
+                type="button"
+                className={`px-3 py-2 rounded-lg border font-medium shadow-sm transition-all duration-150 hover:bg-black hover:text-white ${voucherCode.toUpperCase() === v.code ? 'bg-black text-white' : 'bg-gray-100 text-black'}`}
+                onClick={() => {
+                  setVoucherCode(v.code);
+                  setVoucherError('');
+                  setVoucherApplied(false);
+                }}
+              >
+                {v.code} <span className="ml-1 text-xs text-gray-500">{v.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 items-center">
+            <Input
+              value={voucherCode}
+              onChange={e => {
+                setVoucherCode(e.target.value);
+                setVoucherError('');
+                setVoucherApplied(false);
+              }}
+              placeholder="Nhập mã giảm giá hoặc chọn bên trên"
+              className="w-1/2"
+            />
+            <Button
+              type="button"
+              onClick={() => {
+                if (!voucherCode) {
+                  setVoucherError('Vui lòng nhập mã giảm giá');
+                  setVoucherApplied(false);
+                  return;
+                }
+                // Giả lập kiểm tra mã, thực tế sẽ gọi API kiểm tra
+                const validCodes = featuredVouchers.map(v => v.code.toLowerCase());
+                if (validCodes.includes(voucherCode.trim().toLowerCase())) {
+                  setVoucherApplied(true);
+                  setVoucherError('');
+                  showToast('Áp dụng mã giảm giá thành công!', 'success');
+                } else {
+                  setVoucherApplied(false);
+                  setVoucherError('Mã giảm giá không hợp lệ');
+                  showToast('Mã giảm giá không hợp lệ', 'error');
+                }
+              }}
+              className="ml-2"
+            >
+              Áp dụng
+            </Button>
+          </div>
+          {voucherError && <p className="mt-2 text-sm text-red-600">{voucherError}</p>}
+          {voucherApplied && <p className="mt-2 text-sm text-green-600">Mã giảm giá đã được áp dụng!</p>}
+        </CardContent>
+      </Card>
       {/* Payment Method */}
       <Card>
         <CardContent className="p-6">

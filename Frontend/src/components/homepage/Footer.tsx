@@ -138,15 +138,6 @@ export default function GlamFooter() {
               Easy Returns
             </span>
           </div>
-          <div className='flex flex-wrap items-center gap-3 opacity-80'>
-            {/* Replace src with your own icons under /public/icons */}
-            {['visa','mastercard','vnpay','momo','cod'].map((p) => (
-              <span key={p} className='inline-flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 ring-1 ring-white/10'>
-                <Image src={`/icons/${p}.svg`} alt={p} width={28} height={18} />
-                <span className='text-xs uppercase'>{p}</span>
-              </span>
-            ))}
-          </div>
         </div>
       </section>
 

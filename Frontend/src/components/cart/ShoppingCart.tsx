@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { toast } from 'react-hot-toast';
 import { X, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -202,8 +203,12 @@ export default function ShoppingCart({ isOpen, onCheckout }: ShoppingCartProps) 
                   fullWidth
                   variant="primary"
                   onClick={() => {
+                    if (selectedIds.length === 0) {
+                      toast.error('Vui lòng chọn sản phẩm để thanh toán!');
+                      return;
+                    }
                     // Only checkout selected items
-                    const query = selectedIds.length > 0 ? `?items=${selectedIds.join(',')}` : '';
+                    const query = `?items=${selectedIds.join(',')}`;
                     router.push(`/checkout${query}`);
                   }}
                 >
