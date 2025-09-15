@@ -79,7 +79,8 @@ public class GoogleAuthService : IGoogleAuthService
             ["fullName"] = fullName,
             ["refreshToken"] = refreshToken,
             ["role"] = role,
-            ["image"] = imageUrl
+            ["image"] = imageUrl,
+            ["email"] = email
         };
 
         var redirectUrl = QueryHelpers.AddQueryString($"{domain}auth", queryParams);

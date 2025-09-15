@@ -78,18 +78,22 @@ interface ShoppingCartProps {
 }
 
 export default function ShoppingCart({ isOpen, onCheckout }: ShoppingCartProps) {
-  const { cart, updateQuantity, removeItem, clearCart, getTotal, getItemCount, loadCartFromServer } = useCartStore()
-  const { user, token, isAuthenticated } = useAuth()
-  const router = useRouter()
+  const { cart, updateQuantity, removeItem, clearCart, getTotal, getItemCount, loadCartFromServer } = useCartStore();
+  const { user, token, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Load cart from server when component mounts and user is authenticated
   useEffect(() => {
     if (isOpen && isAuthenticated && user && token) {
-      loadCartFromServer(token, user.id)
-        .catch(error => {
-        })
+      loadCartFromServer(token, user.id);
     }
-  }, [isOpen, isAuthenticated, user, token, loadCartFromServer])
+  }, [isOpen, isAuthenticated, user, token, loadCartFromServer]);
+
+  // Không chọn sản phẩm nào khi mở cart
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [cart]);
 
   if (!isOpen) return null
 
@@ -139,13 +143,45 @@ export default function ShoppingCart({ isOpen, onCheckout }: ShoppingCartProps) 
               <EmptyCart />
             ) : (
               <div className="space-y-4">
-                {cart.items.map((item) => (
-                  <CartItemComponent
-                    key={item.id}
-                    item={item}
-                    onQuantityChange={(quantity) => handleQuantityChange(item.id, quantity)}
-                    onRemove={() => removeItem(item.id, token || undefined, user?.id)}
+                {/* Select All Checkbox */}
+                <div className="flex items-center mb-2">
+                  <input
+                    type="checkbox"
+                    checked={cart.items.every(item => selectedIds.includes(item.id))}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setSelectedIds(cart.items.map(item => item.id));
+                      } else {
+                        setSelectedIds([]);
+                      }
+                    }}
+                    className="mr-2 accent-black"
+                    aria-label="Chọn tất cả sản phẩm để thanh toán"
                   />
+                  <span className="text-sm text-gray-700">Chọn tất cả</span>
+                </div>
+                {cart.items.map((item) => (
+                  <div key={item.id} className="flex items-center">
+                    {/* Checkbox for selection */}
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(item.id)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedIds((prev: string[]) => [...prev, item.id]);
+                        } else {
+                          setSelectedIds((prev: string[]) => prev.filter((id: string) => id !== item.id));
+                        }
+                      }}
+                      className="mr-2 accent-black"
+                      aria-label={`Chọn sản phẩm ${item.product.name} để thanh toán`}
+                    />
+                    <CartItemComponent
+                      item={item}
+                      onQuantityChange={(quantity) => handleQuantityChange(item.id, quantity)}
+                      onRemove={() => removeItem(item.id, token || undefined, user?.id)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -165,7 +201,11 @@ export default function ShoppingCart({ isOpen, onCheckout }: ShoppingCartProps) 
                 <Button
                   fullWidth
                   variant="primary"
-                  onClick={onCheckout}
+                  onClick={() => {
+                    // Only checkout selected items
+                    const query = selectedIds.length > 0 ? `?items=${selectedIds.join(',')}` : '';
+                    router.push(`/checkout${query}`);
+                  }}
                 >
                   Checkout
                 </Button>
@@ -211,121 +251,118 @@ function CartItemComponent({
   const itemTotal = item.variant.price * item.quantity
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex gap-4">
-          {/* Product Image */}
-          <Link href={`/products/${item.product.slug}`}>
-            <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer">
-              {(() => {
-                const primaryImage = item.product.primaryImageUrl;
-                if (primaryImage) return primaryImage;
-                
-                if (item.product.images && item.product.images.length > 0) {
-                  const firstImage = item.product.images[0];
-                  if (typeof firstImage === 'string') return firstImage;
-                  if (typeof firstImage === 'object' && firstImage.url) return firstImage.url;
-                }
-                
-                return null;
-              })() ? (
+    <div className="p-4">
+      <div className="flex gap-4">
+        {/* Product Image */}
+        <Link href={`/products/${item.product.slug}`}>
+          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer">
+            {(() => {
+              const primaryImage = item.product.primaryImageUrl;
+              if (primaryImage) return (
                 <Image
-                  src={(() => {
-                    const primaryImage = item.product.primaryImageUrl;
-                    if (primaryImage) return primaryImage;
-                    
-                    if (item.product.images && item.product.images.length > 0) {
-                      const firstImage = item.product.images[0];
-                      if (typeof firstImage === 'string') return firstImage;
-                      if (typeof firstImage === 'object' && firstImage.url) return firstImage.url;
-                    }
-                    
-                    return '/placeholder-image.jpg'; // fallback image
-                  })()}
+                  src={primaryImage}
                   alt={item.product.name}
                   width={64}
                   height={64}
                   className="w-full h-full object-cover"
                 />
-              ) : (
+              );
+              if (item.product.images && item.product.images.length > 0) {
+                const firstImage = item.product.images[0];
+                if (typeof firstImage === 'string') return (
+                  <Image
+                    src={firstImage}
+                    alt={item.product.name}
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-cover"
+                  />
+                );
+                if (typeof firstImage === 'object' && firstImage.url) return (
+                  <Image
+                    src={firstImage.url}
+                    alt={item.product.name}
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-cover"
+                  />
+                );
+              }
+              return (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
                   No Image
                 </div>
-              )}
-            </div>
+              );
+            })()}
+          </div>
+        </Link>
+
+        {/* Product Info */}
+        <div className="flex-1 min-w-0">
+          <Link href={`/products/${item.product.slug}`}>
+            <h3 className="font-medium text-gray-900 text-sm line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer">
+              {item.product.name}
+            </h3>
           </Link>
+          {/* Variant attributes - handle both old and new structure */}
+          {item.variant.attributes && Object.keys(item.variant.attributes).length > 0 && (
+            <div className="text-xs text-gray-500 mt-1">
+              {formatVariantAttributes(item.variant.attributes)}
+            </div>
+          )}
 
-          {/* Product Info */}
-          <div className="flex-1 min-w-0">
-            <Link href={`/products/${item.product.slug}`}>
-              <h3 className="font-medium text-gray-900 text-sm line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer">
-                {item.product.name}
-              </h3>
-            </Link>
-            
-            {/* Variant attributes - handle both old and new structure */}
-            {item.variant.attributes && Object.keys(item.variant.attributes).length > 0 && (
-              <div className="text-xs text-gray-500 mt-1">
-                {formatVariantAttributes(item.variant.attributes)}
-              </div>
-            )}
-
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-sm font-semibold text-gray-900">
-                {formatPrice(item.variant.price)}
-              </span>
-              
-              {/* Quantity Controls */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center border border-gray-300 rounded">
-                  <button
-                    onClick={() => handleQuantityUpdate(quantity - 1)}
-                    className="p-1 hover:bg-gray-50 text-gray-500"
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <Input
-                    type="number"
-                    min="1"
-                    max={item.variant.stockQty || item.variant.stock || 999}
-                    value={quantity}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value)
-                      const maxStock = item.variant.stockQty || item.variant.stock || 999
-                      if (value >= 1 && value <= maxStock) {
-                        handleQuantityUpdate(value)
-                      }
-                    }}
-                    className="w-12 text-center text-sm border-0 focus:ring-0 p-1"
-                  />
-                  <button
-                    onClick={() => handleQuantityUpdate(quantity + 1)}
-                    disabled={quantity >= (item.variant.stockQty || item.variant.stock || 999)}
-                    className="p-1 hover:bg-gray-50 text-gray-500 disabled:opacity-50"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                </div>
-                
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-sm font-semibold text-gray-900">
+              {formatPrice(item.variant.price)}
+            </span>
+            {/* Quantity Controls */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border border-gray-300 rounded">
                 <button
-                  onClick={onRemove}
-                  className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                  onClick={() => handleQuantityUpdate(quantity - 1)}
+                  className="p-1 hover:bg-gray-50 text-gray-500"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Minus className="w-3 h-3" />
+                </button>
+                <Input
+                  type="number"
+                  min="1"
+                  max={item.variant.stockQty || item.variant.stock || 999}
+                  value={quantity}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value)
+                    const maxStock = item.variant.stockQty || item.variant.stock || 999
+                    if (value >= 1 && value <= maxStock) {
+                      handleQuantityUpdate(value)
+                    }
+                  }}
+                  className="w-12 text-center text-sm border-0 focus:ring-0 p-1"
+                />
+                <button
+                  onClick={() => handleQuantityUpdate(quantity + 1)}
+                  disabled={quantity >= (item.variant.stockQty || item.variant.stock || 999)}
+                  className="p-1 hover:bg-gray-50 text-gray-500 disabled:opacity-50"
+                >
+                  <Plus className="w-3 h-3" />
                 </button>
               </div>
-            </div>
-
-            {/* Item Total */}
-            <div className="text-right mt-2">
-              <span className="text-sm font-semibold text-gray-900">
-                {formatPrice(itemTotal)}
-              </span>
+              <button
+                onClick={onRemove}
+                className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           </div>
+          {/* Item Total */}
+          <div className="text-right mt-2">
+            <span className="text-sm font-semibold text-gray-900">
+              {formatPrice(itemTotal)}
+            </span>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 

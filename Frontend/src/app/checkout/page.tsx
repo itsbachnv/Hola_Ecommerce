@@ -9,17 +9,26 @@ import CheckoutSummary from '@/components/checkout/CheckoutSummary';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, getTotal, getItemCount } = useCartStore();
+  const { cart } = useCartStore();
   const { user, token } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedItems, setSelectedItems] = useState<typeof cart.items>([]);
 
   useEffect(() => {
-    // Check if cart has items (no need to check login)
     if (!cart || cart.items.length === 0) {
       router.push('/products');
       return;
     }
 
+    // Get selected ids from query string
+    const params = new URLSearchParams(window.location.search);
+    const itemsParam = params.get('items');
+    let filteredItems = cart.items;
+    if (itemsParam) {
+      const selectedIds = itemsParam.split(',');
+      filteredItems = cart.items.filter(item => selectedIds.includes(item.id));
+    }
+    setSelectedItems(filteredItems);
     setIsLoading(false);
   }, [cart, router]);
 
@@ -34,7 +43,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!cart || cart.items.length === 0) {
+  if (!cart || selectedItems.length === 0) {
     return null; // Will redirect
   }
 
@@ -45,7 +54,7 @@ export default function CheckoutPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Thanh toán</h1>
           <p className="mt-2 text-gray-600">
-            Hoàn tất đơn hàng của bạn với {getItemCount()} sản phẩm
+            Hoàn tất đơn hàng của bạn với {selectedItems.length} sản phẩm
           </p>
           {!user && (
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -63,12 +72,12 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left: Checkout Form */}
           <div>
-            <CheckoutForm />
+            <CheckoutForm items={selectedItems} />
           </div>
 
           {/* Right: Order Summary */}
           <div>
-            <CheckoutSummary />
+            <CheckoutSummary items={selectedItems} />
           </div>
         </div>
       </div>

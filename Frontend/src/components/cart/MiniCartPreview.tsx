@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCartStore } from '@/stores/cart';
@@ -52,6 +53,12 @@ interface MiniCartPreviewProps {
 
 export default function MiniCartPreview({ maxItems = 4 }: MiniCartPreviewProps) {
   const { cart, getTotal, getItemCount } = useCartStore();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Không chọn sản phẩm nào khi mở cart
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [cart]);
 
   if (!cart || cart.items.length === 0) {
     return (
@@ -78,9 +85,40 @@ export default function MiniCartPreview({ maxItems = 4 }: MiniCartPreviewProps) 
       </div>
 
       {/* Items */}
+      {/* Select All Checkbox */}
+      <div className="flex items-center px-4 py-2 border-b border-gray-100 bg-gray-50">
+        <input
+          type="checkbox"
+          checked={displayItems.every(item => selectedIds.includes(item.id))}
+          onChange={e => {
+            if (e.target.checked) {
+              setSelectedIds(displayItems.map(item => item.id));
+            } else {
+              setSelectedIds([]);
+            }
+          }}
+          className="mr-2 accent-black"
+          aria-label="Chọn tất cả sản phẩm để thanh toán"
+        />
+        <span className="text-sm text-gray-700">Chọn tất cả</span>
+      </div>
       <div className="max-h-64 overflow-y-auto">
         {displayItems.map((item) => (
-          <div key={item.id} className="flex gap-3 p-3 border-b border-gray-50 last:border-b-0">
+          <div key={item.id} className="flex gap-3 p-3 border-b border-gray-50 last:border-b-0 items-center">
+            {/* Checkbox for selection */}
+            <input
+              type="checkbox"
+              checked={selectedIds.includes(item.id)}
+              onChange={e => {
+                if (e.target.checked) {
+                  setSelectedIds((prev: string[]) => [...prev, item.id]);
+                } else {
+                  setSelectedIds((prev: string[]) => prev.filter((id: string) => id !== item.id));
+                }
+              }}
+              className="mr-2 accent-black"
+              aria-label={`Chọn sản phẩm ${item.product.name} để thanh toán`}
+            />
             {/* Product Image */}
             <Link href={`/products/${item.product.slug}`}>
               <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer">
@@ -168,7 +206,6 @@ export default function MiniCartPreview({ maxItems = 4 }: MiniCartPreviewProps) 
           <span className="text-sm font-medium text-gray-900">Tổng cộng:</span>
           <span className="font-semibold text-gray-900">{formatPrice(total)}</span>
         </div>
-        
         <div className="flex gap-2">
           <Link
             href="/cart"
@@ -177,7 +214,10 @@ export default function MiniCartPreview({ maxItems = 4 }: MiniCartPreviewProps) 
             Xem giỏ hàng
           </Link>
           <Link
-            href="/checkout"
+            href={{
+              pathname: '/checkout',
+              query: { items: selectedIds.join(',') }
+            }}
             className="flex-1 text-center bg-black text-white py-2 px-3 rounded-lg text-sm hover:bg-gray-800 transition-colors"
           >
             Thanh toán

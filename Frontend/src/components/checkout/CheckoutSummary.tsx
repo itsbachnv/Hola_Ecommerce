@@ -44,10 +44,12 @@ const formatVariantAttributes = (attributes: Record<string, unknown>): string =>
   return formatted.join(', ');
 };
 
-export default function CheckoutSummary() {
-  const { cart, getTotal, getItemCount } = useCartStore();
+interface CheckoutSummaryProps {
+  items: any[];
+}
 
-  if (!cart || cart.items.length === 0) {
+export default function CheckoutSummary({ items }: CheckoutSummaryProps) {
+  if (!items || items.length === 0) {
     return (
       <Card>
         <CardContent className="p-6 text-center text-gray-500">
@@ -57,10 +59,10 @@ export default function CheckoutSummary() {
     );
   }
 
-  const subtotal = getTotal();
+  const subtotal = items.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
   const shippingFee = 30000; // 30k VND
   const total = subtotal + shippingFee;
-  const itemCount = getItemCount();
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <div className="space-y-6">
@@ -71,7 +73,7 @@ export default function CheckoutSummary() {
           
           {/* Items */}
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {cart.items.map((item) => (
+            {items.map((item) => (
               <div key={item.id} className="flex gap-4 p-3 bg-gray-50 rounded-lg">
                 {/* Product Image */}
                 <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">

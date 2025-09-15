@@ -16,8 +16,8 @@ const AuthCallback = () => {
       const query = new URLSearchParams(window.location.search);
 
       const token = query.get("token");
-    // const refreshToken = query.get("refreshToken"); // Not used
       const fullName = query.get("fullName");
+      const email = query.get("email");
       const userId = query.get("id") ? Number(query.get("id")) : 0;
       const role = query.get("role");
       const imageUrl = query.get("image");
@@ -26,7 +26,7 @@ const AuthCallback = () => {
           // Tạo user object giống login trong store
           const user = {
             id: userId,
-            email: '',
+            email: email || '',
             fullName: fullName || '',
             role: role || 'Customer',
             phone: '',

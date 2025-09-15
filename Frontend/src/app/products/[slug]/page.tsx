@@ -16,7 +16,6 @@ export default async function ProductDetailPage({
 
   try {
     const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/products/${decodedSlug}`;
-    console.log('Fetching product from:', apiUrl);
     try {
       const res = await api.get(apiUrl, {
         headers: {
@@ -30,11 +29,9 @@ export default async function ProductDetailPage({
       if (error && typeof error === 'object' && 'response' in error && error.response && error.response.status === 404) {
         return notFound();
       }
-      console.error('Error fetching product:', error);
       return notFound();
     }
   } catch (error) {
-    console.error('Error fetching product:', error);
     return notFound();
   }
 }
