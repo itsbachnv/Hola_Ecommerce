@@ -28,14 +28,19 @@ export function getProvinces(): Province[] {
   }));
 }
 
+
+// Trả về đầy đủ object district (bao gồm cả xa-phuong)
 export function getDistricts(provinceCode: string): District[] {
   const province = (provincesData as any)[provinceCode];
   if (!province || !province['quan-huyen']) return [];
-  return Object.values(province['quan-huyen']).map((d: any) => ({
-    code: d.code,
-    name: d.name,
-    slug: d.slug,
-    type: d.type,
-    name_with_type: d.name_with_type,
-  }));
+  return Object.values(province['quan-huyen']);
+}
+
+// Lấy danh sách xã/phường từ provinceCode và districtCode
+export function getWards(provinceCode: string, districtCode: string): { code: string; name: string }[] {
+  const province = (provincesData as any)[provinceCode];
+  if (!province || !province['quan-huyen']) return [];
+  const district = province['quan-huyen'][districtCode];
+  if (!district || !district['xa-phuong']) return [];
+  return Object.values(district['xa-phuong']).map((w: any) => ({ code: w.code, name: w.name }));
 }

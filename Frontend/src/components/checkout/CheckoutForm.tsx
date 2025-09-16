@@ -2,21 +2,19 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
+import { useCheckout } from '@/hooks/useCheckout';
 import { useCartStore } from '@/stores/cart';
 import { useAuthStore } from '@/stores/auth';
-import { useToastStore } from '@/stores/toast';
-import { useLoadingStore } from '@/stores/loading';
 import Button from '@/components/ui/Button';
-import { getProvinces, getDistricts, Province, District } from '@/components/Address/provinces_districts';
+import { getProvinces, getDistricts, getWards, Province, District } from '@/components/Address/provinces_districts';
 import LoadingButton from '@/components/ui/LoadingButton';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import axios from 'axios';
-import api from '@/utils/api';
 
 // Prop type cho danh sách sản phẩm đã chọn
 interface CheckoutFormProps {
+  // TODO: Replace any with proper type for items
   items: any[];
 }
 
@@ -28,6 +26,7 @@ interface CheckoutFormData {
   address: string;
   district: string;
   city: string;
+  ward: string; // Thêm trường xã/phường
   postalCode?: string;
   
   // Payment Information
@@ -46,18 +45,17 @@ interface CheckoutFormData {
 export default function CheckoutForm({ items }: CheckoutFormProps) {
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedWard, setSelectedWard] = useState('');
   const provinces: Province[] = getProvinces();
   const districts: District[] = selectedProvince ? getDistricts(selectedProvince) : [];
-  const router = useRouter();
-  const { cart, clearCart } = useCartStore();
-  // Không cần getCheckoutItems, dùng trực tiếp prop items truyền từ cha (chính là danh sách đang hiển thị ở CheckoutSummary)
-  const { user, setUser, setToken } = useAuthStore();
-  const { showToast } = useToastStore();
-  const { setLoading, clearLoading } = useLoadingStore();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const wards: { code: string; name: string }[] = (selectedProvince && selectedDistrict) ? getWards(selectedProvince, selectedDistrict) : [];
+  // const router = useRouter();
+  const { cart } = useCartStore();
+  const { user } = useAuthStore();
   const [voucherCode, setVoucherCode] = useState('');
   const [voucherApplied, setVoucherApplied] = useState(false);
   const [voucherError, setVoucherError] = useState('');
+  const { checkout, isSubmitting } = useCheckout();
   // Danh sách mã giảm giá nổi bật
   const featuredVouchers = [
     { code: 'HOLAVIP', label: 'Giảm 10% cho khách VIP' },
@@ -84,107 +82,54 @@ export default function CheckoutForm({ items }: CheckoutFormProps) {
 
   const onSubmit = async (data: CheckoutFormData) => {
     if (!cart || cart.items.length === 0) {
-      showToast('Giỏ hàng trống', 'error');
+      // showToast đã nằm trong hook
       return;
     }
-
-    setIsSubmitting(true);
-
-    try {
-      // Set loading with appropriate message
-      if (!user && data.createAccount) {
-        setLoading(true, 'Đang tạo tài khoản và đặt hàng...', 'creating');
-      } else {
-        setLoading(true, 'Đang xử lý đơn hàng...', 'creating');
+    // Validate password nếu tạo tài khoản
+    if (!user && data.createAccount) {
+      if (!data.password || !data.confirmPassword) {
+        // showToast đã nằm trong hook
+        return;
       }
-
-      // If guest wants to create account, validate password fields
-      if (!user && data.createAccount) {
-        if (!data.password || !data.confirmPassword) {
-          showToast('Vui lòng nhập đầy đủ thông tin mật khẩu', 'error');
-          return;
-        }
-        if (data.password !== data.confirmPassword) {
-          showToast('Mật khẩu không khớp', 'error');
-          return;
-        }
+      if (data.password !== data.confirmPassword) {
+        // showToast đã nằm trong hook
+        return;
       }
-
-      // Update loading message
-      setLoading(true, 'Đang chuẩn bị thông tin đơn hàng...', 'saving');
-
-      // Dùng đúng danh sách sản phẩm đã chọn truyền từ prop
-      const subtotal = items.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
-      const shippingFee = 30000;
-      const total = subtotal + shippingFee;
-      const orderData = {
-        customerInfo: {
-          fullName: data.fullName,
-          phone: data.phone,
-          email: data.email,
-          isGuest: !user,
-          createAccount: !user && data.createAccount,
-          password: !user && data.createAccount ? data.password : undefined,
-        },
-        shippingAddress: {
-          address: data.address,
-          district: data.district,
-          city: data.city,
-          postalCode: data.postalCode || '',
-        },
-        items: items.map(item => ({
-          productId: item.productId,
-          variantId: item.variantId,
-          quantity: item.quantity,
-          price: item.variant.price,
-        })),
-        paymentMethod: data.paymentMethod,
-        notes: data.notes || '',
-        voucherCode: voucherApplied ? voucherCode : '',
-        subtotal,
-        shippingFee,
-        total,
-      };
-
-      // Gọi API POST /checkout/order sử dụng api instance
-      try {
-        const response = await api.post('/checkout/order', orderData);
-        if (response.data && response.data.success) {
-          showToast('Đặt hàng thành công!', 'success');
-          router.push('/order-success');
-        } else {
-          showToast('Có lỗi xảy ra khi đặt hàng', 'error');
-        }
-      } catch (err) {
-        showToast('Có lỗi xảy ra khi đặt hàng', 'error');
-      }
-
-
-      // Update loading message for API call
-      setLoading(true, 'Đang gửi đơn hàng đến server...', 'updating');
-
-      // Simulate API call with realistic timing
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Update loading for final steps
-      setLoading(true, 'Đang hoàn tất đơn hàng...', 'saving');
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-  // Chuyển hướng sang trang thành công, không xóa giỏ hàng
-  if (!user && data.createAccount) {
-        showToast('Tài khoản đã được tạo và đơn hàng đã được đặt thành công!', 'success');
-      } else {
-        showToast('Đặt hàng thành công!', 'success');
-      }
-      
-      router.push('/order-success');
-
-    } catch (error) {
-      showToast('Có lỗi xảy ra khi đặt hàng', 'error');
-    } finally {
-      setIsSubmitting(false);
-      clearLoading();
     }
+    const subtotal = items.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
+    const shippingFee = 30000;
+    const total = subtotal + shippingFee;
+    const orderData = {
+      customerInfo: {
+        userId : user?.id,
+        fullName: data.fullName,
+        phone: data.phone,
+        email: data.email,
+        isGuest: !user,
+        createAccount: !user && data.createAccount,
+        password: !user && data.createAccount ? data.password : undefined,
+      },
+      shippingAddress: {
+        address: data.address,
+        ward: data.ward,
+        district: data.district,
+        city: data.city,
+        postalCode: data.postalCode || '',
+      },
+      items: items.map(item => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        price: item.variant.price,
+      })),
+      paymentMethod: data.paymentMethod,
+      notes: data.notes || '',
+      voucherCode: voucherApplied ? voucherCode : '',
+      subtotal,
+      shippingFee,
+      total,
+    };
+    checkout(orderData);
   };
 
   return (
@@ -301,6 +246,7 @@ export default function CheckoutForm({ items }: CheckoutFormProps) {
                 onChange={e => {
                   setSelectedProvince(e.target.value);
                   setSelectedDistrict('');
+                  setSelectedWard('');
                   const province = provinces.find(p => p.code === e.target.value);
                   setValue('city', province ? province.name : '', { shouldValidate: true });
                 }}
@@ -318,8 +264,10 @@ export default function CheckoutForm({ items }: CheckoutFormProps) {
                 value={selectedDistrict}
                 onChange={e => {
                   setSelectedDistrict(e.target.value);
+                  setSelectedWard('');
                   const district = districts.find(d => d.code === e.target.value);
                   setValue('district', district ? district.name : '', { shouldValidate: true });
+                  setValue('ward', '', { shouldValidate: true });
                 }}
                 className="w-full border rounded p-2 mb-4"
                 disabled={!selectedProvince}
@@ -330,6 +278,24 @@ export default function CheckoutForm({ items }: CheckoutFormProps) {
                 ))}
               </select>
               {errors.district && <p className="mt-1 text-sm text-red-600">{errors.district.message}</p>}
+
+              <label className="block text-sm font-medium text-gray-700 mb-1">Xã/Phường *</label>
+              <select
+                value={selectedWard}
+                onChange={e => {
+                  setSelectedWard(e.target.value);
+                  const ward = wards.find(w => w.code === e.target.value);
+                  setValue('ward', ward ? ward.name : '', { shouldValidate: true });
+                }}
+                className="w-full border rounded p-2 mb-4"
+                disabled={!selectedDistrict || wards.length === 0}
+              >
+                <option value="">Chọn xã/phường</option>
+                {wards.map(w => (
+                  <option key={w.code} value={w.code}>{w.name}</option>
+                ))}
+              </select>
+              {errors.ward && <p className="mt-1 text-sm text-red-600">{errors.ward.message}</p>}
 
               <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ chi tiết *</label>
               <input
@@ -453,11 +419,11 @@ export default function CheckoutForm({ items }: CheckoutFormProps) {
                 if (validCodes.includes(voucherCode.trim().toLowerCase())) {
                   setVoucherApplied(true);
                   setVoucherError('');
-                  showToast('Áp dụng mã giảm giá thành công!', 'success');
+                  // showToast('Áp dụng mã giảm giá thành công!', 'success');
                 } else {
                   setVoucherApplied(false);
                   setVoucherError('Mã giảm giá không hợp lệ');
-                  showToast('Mã giảm giá không hợp lệ', 'error');
+                  // showToast('Mã giảm giá không hợp lệ', 'error');
                 }
               }}
               className="ml-2"

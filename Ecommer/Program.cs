@@ -2,23 +2,12 @@ using Ecommer.Api.Endpoints;
 using Ecommer.Container.ServiceRegister;
 using Ecommer.Controllers.Endpoints;
 using Infrastructure.Hubs;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddAuthenticationServices(builder.Configuration);
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddHttpContextAccessor();
 builder.Services.AddSwaggerGen(option =>
 {
     option.SwaggerDoc("v1", new OpenApiInfo { Title = "Ecommerce", Version = "v1" });
@@ -39,7 +28,7 @@ builder.Services.AddSwaggerGen(option =>
                 Reference = new OpenApiReference
                 {
                     Type=ReferenceType.SecurityScheme,
-                    Id="Bearer" 
+                    Id="Bearer"
                 }
             },
             new string[]{}
@@ -47,13 +36,25 @@ builder.Services.AddSwaggerGen(option =>
     });
 });
 
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddAuthenticationServices(builder.Configuration);
+
+builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
+
 var app = builder.Build();
 
+// Swagger UI
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Ecommerce v1");
+    });
 }
+
 // CORS
 app.UseCors("_myAllowSpecificOrigins");
 
@@ -74,5 +75,6 @@ app.MapBrands();
 app.MapNotifications();
 app.MapHub<NotifyHub>("/notify");
 app.MapHub<ChatHub>("/chat");
+app.MapOrdersEndpoints(builder.Configuration);
 
 app.Run();

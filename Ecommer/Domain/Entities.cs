@@ -139,6 +139,9 @@ public class Order
     public long Id { get; set; }
     public string Code { get; set; } = default!;
     public long? UserId { get; set; }
+    public string? CustomerFullName { get; set; }
+    public string? CustomerPhone { get; set; }
+    public string? CustomerEmail { get; set; }
     public OrderStatus Status { get; set; } = OrderStatus.Draft;
     public decimal Subtotal { get; set; }
     public decimal DiscountTotal { get; set; }
@@ -150,6 +153,7 @@ public class Order
     public JsonDocument? BillingAddress { get; set; }
     public string? Notes { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public string? CreatedBy { get; set; }
     public DateTimeOffset? PaidAt { get; set; }
     public DateTimeOffset? ShippedAt { get; set; }
     public DateTimeOffset? DeliveredAt { get; set; }

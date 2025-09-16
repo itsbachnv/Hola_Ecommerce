@@ -55,7 +55,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<NotificationsRepository>();
-        
+        services.AddHostedService<Infrastructure.Services.OrderConsumerService>();
         services.AddMemoryCache();
         services.AddHttpClient();
         services.AddSignalR()
