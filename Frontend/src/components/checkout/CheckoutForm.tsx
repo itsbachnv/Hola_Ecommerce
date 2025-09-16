@@ -75,6 +75,7 @@ export default function CheckoutForm({ items }: CheckoutFormProps) {
       email: user?.email || '',
       phone: user?.phone || '',
       paymentMethod: 'cod',
+      createAccount: user ? false : true,
     },
   });
 
@@ -84,17 +85,6 @@ export default function CheckoutForm({ items }: CheckoutFormProps) {
     if (!cart || cart.items.length === 0) {
       // showToast đã nằm trong hook
       return;
-    }
-    // Validate password nếu tạo tài khoản
-    if (!user && data.createAccount) {
-      if (!data.password || !data.confirmPassword) {
-        // showToast đã nằm trong hook
-        return;
-      }
-      if (data.password !== data.confirmPassword) {
-        // showToast đã nằm trong hook
-        return;
-      }
     }
     const subtotal = items.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
     const shippingFee = 30000;
@@ -308,73 +298,6 @@ export default function CheckoutForm({ items }: CheckoutFormProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Account Creation Option (only for guests) */}
-      {!user && (
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <input
-                type="checkbox"
-                id="createAccount"
-                {...register('createAccount')}
-                className="rounded border-gray-300 text-black focus:ring-black"
-              />
-              <label htmlFor="createAccount" className="text-sm font-medium text-gray-900 cursor-pointer">
-                Tạo tài khoản để theo dõi đơn hàng
-              </label>
-            </div>
-
-            {watch('createAccount') && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mật khẩu *
-                  </label>
-                  <Input
-                    type="password"
-                    {...register('password', { 
-                      required: watch('createAccount') ? 'Vui lòng nhập mật khẩu' : false,
-                      minLength: {
-                        value: 6,
-                        message: 'Mật khẩu phải có ít nhất 6 ký tự'
-                      }
-                    })}
-                    placeholder="Nhập mật khẩu"
-                    className={errors.password ? 'border-red-500' : ''}
-                  />
-                  {errors.password && (
-                    <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Xác nhận mật khẩu *
-                  </label>
-                  <Input
-                    type="password"
-                    {...register('confirmPassword', {
-                      required: watch('createAccount') ? 'Vui lòng xác nhận mật khẩu' : false,
-                      validate: (value) => {
-                        if (watch('createAccount') && value !== watch('password')) {
-                          return 'Mật khẩu không khớp';
-                        }
-                        return true;
-                      }
-                    })}
-                    placeholder="Xác nhận mật khẩu"
-                    className={errors.confirmPassword ? 'border-red-500' : ''}
-                  />
-                  {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
       {/* Voucher Code - UI đẹp, chọn nhanh */}
       <Card>
         <CardContent className="p-6">
