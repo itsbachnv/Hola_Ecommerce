@@ -35,27 +35,14 @@ export default function OrderSuccessPage() {
           Cảm ơn bạn đã mua hàng. Đơn hàng của bạn đang được xử lý và sẽ được giao trong 2-3 ngày làm việc.
         </p>
 
-        {/* Order Info */}
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Mã đơn hàng:</span>
-            <span className="font-medium">#{Date.now().toString().slice(-8)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm mt-2">
-            <span className="text-gray-600">Thời gian đặt:</span>
-            <span className="font-medium">{new Date().toLocaleDateString('vi-VN')}</span>
-          </div>
-        </div>
-
         {/* Action Buttons */}
-        <div className="space-y-3">
-          <Link href="/orders" className="block">
+        <div className="space-y-3 mb-6">
+          <Link href="/profile/orders" className="block">
             <Button variant="outline" className="w-full">
               <ShoppingBag className="w-4 h-4 mr-2" />
-              Xem đơn hàng
+              Xem chi tiết đơn hàng
             </Button>
           </Link>
-          
           <Link href="/products" className="block">
             <Button className="w-full">
               <Home className="w-4 h-4 mr-2" />

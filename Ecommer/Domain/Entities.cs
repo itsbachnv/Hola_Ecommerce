@@ -142,7 +142,7 @@ public class Order
     public string? CustomerFullName { get; set; }
     public string? CustomerPhone { get; set; }
     public string? CustomerEmail { get; set; }
-    public OrderStatus Status { get; set; } = OrderStatus.Draft;
+    public OrderStatus Status { get; set; } = OrderStatus.Ordered;
     public decimal Subtotal { get; set; }
     public decimal DiscountTotal { get; set; }
     public decimal ShippingFee { get; set; }
@@ -220,7 +220,7 @@ public class Payment
     public JsonDocument? Payload { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? PaidAt { get; set; }
-
+    public string Type { get; set; } = "PAYMENT"; // PAYMENT | REFUND
     public Order Order { get; set; } = default!;
 }
 

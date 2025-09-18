@@ -6,6 +6,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
+using Ecommer.Application.Notifications.Commands;
 using Ecommer.Application.Users.Commands;
 using MediatR;
 
@@ -16,12 +17,14 @@ public class OrderConsumerService : BackgroundService
     private readonly IServiceProvider _services;
     private readonly IConfiguration _config;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IMediator _mediator;
 
-    public OrderConsumerService(IServiceProvider services, IConfiguration config, IHttpContextAccessor httpContextAccessor)
+    public OrderConsumerService(IServiceProvider services, IConfiguration config, IHttpContextAccessor httpContextAccessor, IMediator mediator)
     {
         _services = services;
         _config = config;
         _httpContextAccessor = httpContextAccessor;
+        _mediator = mediator;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -96,7 +99,7 @@ public class OrderConsumerService : BackgroundService
                         CustomerFullName = command.CustomerInfo.FullName,
                         CustomerEmail = command.CustomerInfo.Email,
                         CustomerPhone = command.CustomerInfo.Phone,
-                        Status = Enums.OrderStatus.AwaitingFulfillment,
+                        Status = Enums.OrderStatus.Ordered,
                         Subtotal = command.Subtotal,
                         ShippingFee = command.ShippingFee,
                         DiscountTotal = 0,
@@ -134,6 +137,40 @@ public class OrderConsumerService : BackgroundService
 
                     await db.SaveChangesAsync(stoppingToken);
                     await transaction.CommitAsync(stoppingToken);
+                    try
+                    {
+                        var message = 
+                            $"Khách hàng {command.CustomerInfo.FullName} đã tạo đơn hàng lúc {DateTime.Now:dd/MM/yyyy HH:mm}.";
+                        int userId = Convert.ToInt32(currentUserId);
+                        await _mediator.Send(new SendNotificationCommand(
+                            userId,
+                            "Tạo đơn hàng mới",
+                            message,
+                            "Xem chi tiết",
+                            0, $"/profile/orders/{order.Code}"
+                        ), stoppingToken);
+                        var admins = await db.Users
+                            .Where(u => u.Role == "Admin")
+                            .Select(u => u.Id)
+                            .ToListAsync(stoppingToken);
+
+                        foreach (var adminId in admins)
+                        {
+                            await _mediator.Send(new SendNotificationCommand(
+                                (int)adminId,
+                                "Đơn hàng mới",
+                                message,
+                                "Xem chi tiết",
+                                0,
+                                $"/admin/orders/{order.Code}"
+                            ), stoppingToken);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
+                    
                 }
                 catch (Exception ex)
                 {
@@ -148,7 +185,6 @@ public class OrderConsumerService : BackgroundService
             autoAck: true,
             consumer: consumer
         );
-        
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 }

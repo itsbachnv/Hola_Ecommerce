@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
+using Ecommer.Application.Orders.Queries;
+using MediatR;
 
 namespace Ecommer.Controllers.Endpoints;
 
@@ -122,6 +124,25 @@ public static class OrdersEndpoints
                 JsonSerializer.Serialize(new { Message = "Message test đã gửi vào queue orders" })
             );
         });
+        
+        group.MapGet("/", async (HttpContext context, IMediator mediator) =>
+        {
+            var query = new ViewListOrderQuery();
+            var orders = await mediator.Send(query);
+
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(orders));
+        });
+        
+        group.MapGet("/{orderCode}", async (string orderCode, HttpContext context, IMediator mediator) =>
+        {
+            var query = new ViewByOrderCodeQuery(orderCode);
+            var order = await mediator.Send(query);
+
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(order));
+        });
 
     }
 }
+

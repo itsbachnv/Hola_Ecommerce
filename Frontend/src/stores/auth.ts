@@ -171,6 +171,7 @@ export const useAuthStore = create<AuthStore>()(
         localStorage.removeItem('user')
         localStorage.removeItem('guestId')
         localStorage.removeItem('auth-storage')
+        localStorage.removeItem('notification-cache') // Clear notification cache on logout
         // Clear auth state
         set({ user: null, token: null })
         
@@ -180,8 +181,8 @@ export const useAuthStore = create<AuthStore>()(
             const { clearCart } = useCartStore.getState()
             clearCart()
           })
-          } catch {
-          }
+        } catch {
+        }
       },
       
       setUser: (user) => {
