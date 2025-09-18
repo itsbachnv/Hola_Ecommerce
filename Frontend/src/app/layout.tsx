@@ -5,6 +5,7 @@ import ConditionalLayout from '@/components/layout/ConditionalLayout';
 import ToastContainer from '@/components/ui/ToastContainer';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import Script from 'next/script';
+import { ChatHubProvider } from '@/components/chat/ChatHubProvider';
 
 export const metadata: Metadata = {
   title: "Hola Ecommerce",
@@ -15,9 +16,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="tc-new-price">
       <body className="font-sans text-black min-h-screen" style={{ backgroundColor: '#fcfaf2' }}>
-        <ConditionalLayout>
-          {children}
-        </ConditionalLayout>
+        <ChatHubProvider>
+          <ConditionalLayout>
+            {children}
+          </ConditionalLayout>
+        </ChatHubProvider>
         <ToastContainer />
         <LoadingOverlay />
         <Script

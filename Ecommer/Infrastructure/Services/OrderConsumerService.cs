@@ -140,7 +140,7 @@ public class OrderConsumerService : BackgroundService
                     try
                     {
                         var message = 
-                            $"Khách hàng {command.CustomerInfo.FullName} đã tạo đơn hàng lúc {DateTime.Now:dd/MM/yyyy HH:mm}.";
+                            $"Khách hàng {command.CustomerInfo.FullName} đã tạo đơn hàng lúc {DateTime.UtcNow:dd/MM/yyyy HH:mm}.";
                         int userId = Convert.ToInt32(currentUserId);
                         await _mediator.Send(new SendNotificationCommand(
                             userId,

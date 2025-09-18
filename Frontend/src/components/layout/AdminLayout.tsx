@@ -19,6 +19,10 @@ import {
   User
 } from 'lucide-react'
 import { NotificationButton } from '../notification/NotificationButton'
+import { useGuestConversations } from '@/hooks/chat/useGuestConversations';
+import { ChatWindow } from '@/components/chat/ChatWindow';
+import { MessageCircle } from 'lucide-react';
+import { GuestConversationList } from '../chat/GuestConversationList'
 
 
 interface SidebarItem {
@@ -94,6 +98,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const { user, logout, isCustomer } = useAuth()
+
+  // Guest conversations for admin/staff
+  const {
+    conversations: guestConversations,
+    loading: guestLoading,
+    totalCount: guestTotalCount,
+    refreshGuests
+  } = useGuestConversations();
+  const [selectedGuest, setSelectedGuest] = useState<null | typeof guestConversations[0]>(null);
+
+  // State để mở modal chat guest
+  const [openGuestChat, setOpenGuestChat] = useState(false);
 
   const filteredSidebarItems = sidebarItems.filter(item => {
     if (!item.roles) return true
@@ -236,6 +252,78 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Page content */}
         <main className="p-6">
           {children}
+          {/* Nút mở chat khách tư vấn cho admin/staff */}
+          {user?.role && (user.role === 'Admin' || user.role === 'Staff') && (
+            <>
+              {/* Nút nổi ở góc phải dưới */}
+              {!openGuestChat && (
+                <button
+                  className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-full shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                  onClick={() => setOpenGuestChat(true)}
+                  title="Tin nhắn khách tư vấn"
+                >
+                  <MessageCircle className="w-6 h-6" />
+                  <span className="hidden md:inline">Tin nhắn khách tư vấn</span>
+                  {guestTotalCount > 0 && (
+                    <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 animate-pulse">
+                      {guestTotalCount > 99 ? '99+' : guestTotalCount}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {/* Modal chat guest */}
+              {openGuestChat && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+                  <div className="relative w-full max-w-3xl h-[80vh] bg-white rounded-2xl shadow-2xl flex flex-col">
+                    {/* Đóng modal */}
+                    <button
+                      className="absolute top-4 right-4 z-10 p-2 rounded-full bg-gray-100 hover:bg-gray-200"
+                      onClick={() => setOpenGuestChat(false)}
+                      title="Đóng chat"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-gray-600">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <div className="flex-1 overflow-hidden flex flex-row">
+                      {/* Danh sách guest bên trái */}
+                      <div className="w-1/3 min-w-[260px] max-w-xs border-r border-gray-200 bg-gray-50 h-full overflow-y-auto">
+                        <GuestConversationList
+                          conversations={guestConversations}
+                          selectedConversation={selectedGuest}
+                          onSelectConversation={setSelectedGuest}
+                          loading={guestLoading}
+                          totalCount={guestTotalCount}
+                          onRefresh={refreshGuests}
+                        />
+                      </div>
+                      {/* Box chat với guest bên phải */}
+                      <div className="flex-1 h-full">
+                        {selectedGuest ? (
+                          <ChatWindow
+                            conversation={{
+                              userId: selectedGuest.guestId,
+                              fullName: selectedGuest.name,
+                              avatarUrl: '',
+                              role: 'Guest',
+                              phone: selectedGuest.phoneNumber || '',
+                              unreadCount: selectedGuest.unreadCount || 0,
+                            }}
+                            onBack={() => setSelectedGuest(null)}
+                          />
+                        ) : (
+                          <div className="h-full flex items-center justify-center text-gray-400">
+                            Chọn khách tư vấn để bắt đầu chat
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </main>
       </div>
     </div>

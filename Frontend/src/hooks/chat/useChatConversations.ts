@@ -320,7 +320,7 @@ export const useChatConversations = () => {
     if (filters.roleFilter !== 'all') {
       if (filters.roleFilter === 'staff') {
         filtered = filtered.filter(conv => 
-          ['Administrator', 'Owner', 'Receptionist', 'Assistant'].includes(conv.role)
+          ['Admin', 'Owner', 'Receptionist', 'Assistant'].includes(conv.role)
         );
       } else {
         filtered = filtered.filter(conv => conv.role === filters.roleFilter);

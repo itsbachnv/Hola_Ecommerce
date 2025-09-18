@@ -17,6 +17,11 @@ public class UserRepository : IUserRepository
             .Select(u => u.Id)
             .ToListAsync(ct);
 
+    public async Task<IEnumerable<User>> GetAllUserAsync(CancellationToken ct = default)
+    {
+        return _db.Users.ToList();
+    }
+
     public Task<User?> FindAsync(long id, CancellationToken ct = default) =>
         _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
 

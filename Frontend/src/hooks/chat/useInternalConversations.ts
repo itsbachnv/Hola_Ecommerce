@@ -29,7 +29,7 @@ export interface ConversationUser {
 
 export interface ConversationFilters {
   searchTerm: string;
-  roleFilter: 'all' | 'Dentist' | 'Owner' | 'Administrator' | 'Receptionist' | 'Assistant';
+  roleFilter: 'all' | 'Dentist' | 'Owner' | 'Admin' | 'Receptionist' | 'Assistant';
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -57,7 +57,7 @@ export const useInternalConversations = () => {
   });
 
   // Define staff roles
-  const STAFF_ROLES = useMemo(() => ["Administrator", "Owner", "Receptionist", "Assistant", "Dentist"], []);
+  const STAFF_ROLES = useMemo(() => ["Admin", "Owner", "Receptionist", "Assistant", "Dentist"], []);
 
   // Refresh unread counts when userId changes (F5, login, etc.)
   useEffect(() => {

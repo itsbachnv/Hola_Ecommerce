@@ -2,14 +2,14 @@ import React, { memo, useCallback } from 'react';
 import { Search, Users, MessageCircle, RefreshCw } from 'lucide-react';
 import type { GuestConversation } from '@/hooks/chat/useGuestConversations';
 
-interface GuestConversationListProps {
+type GuestConversationListProps = {
   conversations: GuestConversation[];
   selectedConversation: GuestConversation | null;
   onSelectConversation: (conversation: GuestConversation) => void;
   loading: boolean;
   totalCount: number;
   onRefresh?: () => void;
-}
+};
 
 // Memoized conversation item component
 const GuestConversationItem = memo(({ 

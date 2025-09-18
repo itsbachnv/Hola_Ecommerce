@@ -7,6 +7,7 @@ namespace Ecommer.Application.Abstractions.Users;
 public interface IUserRepository
 {
     Task<IReadOnlyList<long>> GetAdminUserIdsAsync(CancellationToken ct = default);
+    Task<IEnumerable<User>> GetAllUserAsync(CancellationToken ct = default);
     Task<User?> FindAsync(long id, CancellationToken ct = default);
     Task<User?> FindByEmailAsync(string email, CancellationToken ct = default);
     Task<bool> EmailExistsAsync(string email, long? excludeId = null, CancellationToken ct = default);

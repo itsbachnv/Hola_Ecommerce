@@ -53,7 +53,7 @@ public class GuestChatHub : Hub
     {
         var httpContext = Context.GetHttpContext();
         var guestId = httpContext?.Request.Query["guestId"].ToString() ?? Context.ConnectionId;
-        var timestamp = DateTime.Now;
+        var timestamp = DateTime.UtcNow;
 
         var guest = await _context.GuestInfos.FirstOrDefaultAsync(x => x.GuestId.ToString() == guestId);
         if (guest == null)
@@ -62,13 +62,13 @@ public class GuestChatHub : Hub
             {
                 GuestId = Guid.Parse(guestId),
                 Name = await GenerateUniqueAnonymousNameAsync(),
-                LastMessageAt = DateTime.Now
+                LastMessageAt = DateTime.UtcNow
             };
             _context.GuestInfos.Add(guest);
         }
         else
         {
-            guest.LastMessageAt = DateTime.Now;
+            guest.LastMessageAt = DateTime.UtcNow;
         }
         
         // Save message to database

@@ -20,7 +20,7 @@ export function useChatHubGuest(guestId: string) {
 
   // 🔌 Kết nối SignalR 1 lần
   useEffect(() => {
-    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL_Not_Api;
+    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
     const hubUrl = `${baseURL}/chat?guestId=${guestId}`;
 
     const connection = new signalR.HubConnectionBuilder()

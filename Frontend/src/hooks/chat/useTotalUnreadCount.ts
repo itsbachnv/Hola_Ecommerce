@@ -9,7 +9,7 @@ export const useTotalUnreadCount = () => {
   const { role, userId } = useAuth();
   
   // Định nghĩa staff roles
-  const STAFF_ROLES = ['Administrator', 'Owner', 'Receptionist', 'Assistant', 'Dentist'];
+  const STAFF_ROLES = ['Admin', 'Owner', 'Receptionist', 'Assistant', 'Dentist'];
   const isStaff = STAFF_ROLES.includes(role || '');
 
   // Get unread counts from all chat types

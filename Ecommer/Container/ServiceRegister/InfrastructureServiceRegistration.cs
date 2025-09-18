@@ -1,3 +1,4 @@
+using Application.Interfaces;
 using Ecommer.Application.Abstractions.Brands;
 using Ecommer.Application.Abstractions.Carts;
 using Ecommer.Application.Abstractions.Categories;
@@ -8,6 +9,7 @@ using Ecommer.Application.Abstractions.Users;
 using Ecommer.Application.Abstractions.Variants;
 using Ecommer.Application.Notifications.Commands;
 using Ecommer.Infrastructure;
+using HDMS_API.Infrastructure.Repositories;
 using Infrastructure.Hubs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +57,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<NotificationsRepository>();
+        services.AddScoped<IGuestRepository, GuestRepository>();
         services.AddHostedService<Infrastructure.Services.OrderConsumerService>();
         services.AddMemoryCache();
         services.AddHttpClient();

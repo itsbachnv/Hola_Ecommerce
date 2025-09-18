@@ -17,7 +17,7 @@ const getRoleInVietnamese = (role: string): string => {
   const roleMap: { [key: string]: string } = {
     'Dentist': 'Nha sĩ',
     'Owner': 'Chủ sở hữu',
-    'Administrator': 'Quản trị viên',
+    'Admin': 'Quản trị viên',
     'Assistant': 'Trợ lý',
     'Receptionist': 'Lễ tân',
     'Patient': 'Bệnh nhân'

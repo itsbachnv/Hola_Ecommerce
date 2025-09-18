@@ -1,3 +1,4 @@
+"use client";
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { createChatConnection } from '@/services/chatHub';
 import { useAuth } from '@/hooks/useAuth';

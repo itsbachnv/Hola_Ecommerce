@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useChatHubGuest } from "@/hooks/chat/useChatHubGuest";

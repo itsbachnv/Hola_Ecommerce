@@ -1,10 +1,12 @@
 // src/app/page.tsx
+
 import ServiceFeatures from "@/components/homepage/ServiceFeatures";
 import Banner from "@/components/homepage/Banner";
 import HeroSection from "@/components/homepage/HeroSection";
 import HeroSection_2 from "@/components/homepage/HeroSection_2";
 import FeaturedProducts from "@/components/products/FeaturedProducts";
 import TileProductList from "@/components/products/TileProductList";
+import ConsultantChatBox from "@/components/chat/ConsultantChatBox";
 
 export default function HomePage() {
   return (
@@ -15,6 +17,8 @@ export default function HomePage() {
     <FeaturedProducts />
     <HeroSection_2 />
     <TileProductList />
+    {/* Chat guest (ConsultantChatBox) */}
+    <ConsultantChatBox />
     </>
   );
 }

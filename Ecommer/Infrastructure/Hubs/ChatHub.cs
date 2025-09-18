@@ -33,13 +33,13 @@ public class ChatHub : Hub
                 {
                     GuestId = Guid.Parse(senderId),
                     Name = await GenerateUniqueAnonymousNameAsync(),
-                    LastMessageAt = DateTime.Now
+                    LastMessageAt = DateTime.UtcNow
                 };
                 _context.GuestInfos.Add(guest);
             }
             else
             {
-                guest.LastMessageAt = DateTime.Now;
+                guest.LastMessageAt = DateTime.UtcNow;
             }
         }
         else
@@ -55,7 +55,7 @@ public class ChatHub : Hub
             }
         }
 
-        var timestamp = DateTime.Now;
+        var timestamp = DateTime.UtcNow;
 
         // Lưu tin nhắn
         var chatMessage = new ChatMessage

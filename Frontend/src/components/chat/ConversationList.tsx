@@ -53,7 +53,7 @@ const ConversationItem = memo(({
     switch (role) {
       case 'Patient': return 'Bệnh nhân';
       case 'Dentist': return 'Nha sĩ';
-      case 'Administrator': return 'Quản trị';
+      case 'Admin': return 'Quản trị';
       case 'Owner': return 'Chủ sở hữu';
       case 'Receptionist': return 'Lễ tân';
       case 'Assistant': return 'Trợ lý';
@@ -66,7 +66,7 @@ const ConversationItem = memo(({
       case 'Patient': return 'bg-green-100 text-green-700 border-green-200';
       case 'Dentist': return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'Owner': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'Administrator': return 'bg-red-100 text-red-700 border-red-200';
+      case 'Admin': return 'bg-red-100 text-red-700 border-red-200';
       case 'Receptionist': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
       case 'Assistant': return 'bg-orange-100 text-orange-700 border-orange-200';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
@@ -304,7 +304,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                 <option value="all">Tất cả vai trò</option>
                 <option value="Patient">Bệnh nhân</option>
                 <option value="Dentist">Nha sĩ</option>
-                <option value="Administrator">Quản trị viên</option>
+                <option value="Admin">Quản trị viên</option>
                 <option value="Owner">Chủ sở hữu</option>
                 <option value="Receptionist">Lễ tân</option>
                 <option value="Assistant">Trợ lý</option>

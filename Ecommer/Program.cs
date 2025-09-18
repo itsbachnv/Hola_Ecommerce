@@ -64,6 +64,8 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
+
 // Map feature endpoints
 app.MapProducts();
 app.MapVariantsEndpoints();
