@@ -1,13 +1,17 @@
 'use client';
 
+
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, ShoppingBag, Home } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { useAuth } from '@/stores/auth';
+
 
 export default function OrderSuccessPage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     // Auto redirect after 10 seconds if user doesn't take action
@@ -17,6 +21,14 @@ export default function OrderSuccessPage() {
 
     return () => clearTimeout(timer);
   }, [router]);
+
+  const handleViewOrderDetail = () => {
+    if (!isAuthenticated) {
+      router.push('/login?redirect=/profile/orders');
+    } else {
+      router.push('/profile/orders');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -37,12 +49,10 @@ export default function OrderSuccessPage() {
 
         {/* Action Buttons */}
         <div className="space-y-3 mb-6">
-          <Link href="/profile/orders" className="block">
-            <Button variant="outline" className="w-full">
-              <ShoppingBag className="w-4 h-4 mr-2" />
-              Xem chi tiết đơn hàng
-            </Button>
-          </Link>
+          <Button variant="outline" className="w-full" onClick={handleViewOrderDetail}>
+            <ShoppingBag className="w-4 h-4 mr-2" />
+            Xem chi tiết đơn hàng
+          </Button>
           <Link href="/products" className="block">
             <Button className="w-full">
               <Home className="w-4 h-4 mr-2" />
